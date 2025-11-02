@@ -1,0 +1,104 @@
+.select-none {
+   user-select: none;
+   pointer-events: none;
+   color: #f87171;
+   font-weight: 400;
+}
+
+/* Modal container */
+
+.custom-modal .ant-modal-content {
+   background-color: #f9f9f9;
+   border-radius: 10px;
+   overflow: hidden;
+}
+
+/* Modal header */
+.modal-header {
+   padding: 16px;
+   background-color: #274040;
+   color: white;
+   text-align: center;
+}
+
+.modal-title {
+   font-size: 1.5rem;
+   font-weight: bold;
+}
+
+/* Navigation links */
+.modal-nav {
+   display: flex;
+   justify-content: space-around;
+   background-color: #fff;
+   padding: 12px;
+   border-bottom: 1px solid #ddd;
+}
+
+.modal-link {
+   color: #274040;
+   text-decoration: none;
+   font-size: 1rem;
+   font-weight: 500;
+   padding: 8px;
+   border-radius: 4px;
+   transition: all 0.3s;
+}
+
+.modal-link:hover {
+   background-color: #e6f7ff;
+   color: #1890ff;
+}
+
+/* Modal sections with scrollable content */
+.modal-section {
+   padding: 16px;
+   max-height: 300px; /* Adjust height for scrollable content */
+   overflow-y: auto; /* Enable vertical scrolling */
+}
+
+.section-title {
+   font-size: 1.25rem;
+   font-weight: bold;
+   margin-bottom: 12px;
+}
+
+/* Scrollbar customization */
+.modal-section::-webkit-scrollbar {
+   width: 8px;
+}
+
+.modal-section::-webkit-scrollbar-thumb {
+   background-color: #274040;
+   border-radius: 4px;
+}
+
+.modal-section::-webkit-scrollbar-thumb:hover {
+   background-color: #1890ff;
+}
+
+.modal-section::-webkit-scrollbar-track {
+   background-color: #f1f1f1;
+}
+
+/* Contact links */
+.contact-link {
+   color: #1890ff;
+   text-decoration: none;
+   transition: all 0.3s;
+}
+
+.contact-link:hover {
+   text-decoration: underline;
+   color: #274040;
+}
+
+/* Footer */
+.custom-footer {
+   text-align: center;
+   padding: 16px;
+   background-color: #274040;
+   color: white;
+   font-size: 0.875rem;
+   border-top: 1px solid #ddd;
+}

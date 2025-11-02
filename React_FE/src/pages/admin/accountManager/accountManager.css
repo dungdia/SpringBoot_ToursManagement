@@ -1,0 +1,21 @@
+#search-account
+   :where(.css-dev-only-do-not-override-1odpy5d).ant-input-group-wrapper {
+   width: 350px;
+}
+
+.format {
+   max-width: 100px; /* Đặt chiều rộng của phần tử */
+   white-space: nowrap; /* Ngăn không cho văn bản xuống dòng */
+   overflow: hidden; /* Ẩn văn bản vượt quá chiều rộng */
+   text-overflow: ellipsis; /* Hiển thị dấu ba chấm ở cuối */
+}
+
+.admin-account {
+   padding: 12px;
+   border-radius: 6px;
+   border: 1px solid yellow;
+   background-color: #6de09c;
+   color: white;
+   cursor: not-allowed;
+   transition: all 0.3s linear;
+}

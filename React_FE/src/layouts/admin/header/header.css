@@ -1,0 +1,10 @@
+#admin-header .ant-avatar {
+   background-color: #ff8904;
+}
+
+#admin-header-info .select-none {
+   user-select: none;
+   pointer-events: none;
+   color: #f87171;
+   font-weight: 400;
+}

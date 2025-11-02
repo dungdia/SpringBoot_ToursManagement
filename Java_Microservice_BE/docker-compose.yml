@@ -1,0 +1,170 @@
+version: "3.8"
+
+services:
+   # =========================================
+   # EUREKA SERVER CLUSTER (2 nodes)
+   # =========================================
+   eureka-service-1:
+      build: ./eureka-service
+      container_name: eureka-service-1
+      hostname: eureka-service-1
+      restart: on-failure
+      ports:
+         - "8761:8761"
+      environment:
+         - SPRING_PROFILES_ACTIVE=peer1
+      networks:
+         - spring-cloud-net
+      healthcheck:
+         test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+         interval: 10s
+         timeout: 5s
+         retries: 5
+
+   eureka-service-2:
+      build: ./eureka-service
+      container_name: eureka-service-2
+      hostname: eureka-service-2
+      restart: on-failure
+      ports:
+         - "8762:8762"
+      environment:
+         - SPRING_PROFILES_ACTIVE=peer2
+      networks:
+         - spring-cloud-net
+      healthcheck:
+         test: ["CMD", "curl", "-f", "http://localhost:8762/actuator/health"]
+         interval: 10s
+         timeout: 5s
+         retries: 5
+      command: sh -c "sleep 60 && java -jar app.jar"
+
+   # =========================================
+   # API GATEWAY
+   # =========================================
+   api-gateway:
+      build: ./api-gateway
+      container_name: api-gateway
+      ports:
+         - "8080:8080"
+      depends_on:
+         - eureka-service-1
+         - eureka-service-2
+         - user-service
+         - tour-service
+         - slot-service
+         - booking-service
+      environment:
+         - SPRING_PROFILES_ACTIVE=docker
+         - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service-1:8761/eureka/,http://eureka-service-2:8762/eureka/
+      networks:
+         - spring-cloud-net
+
+   # =========================================
+   # USER SERVICE + MYSQL (Kết nối thẳng tới MySQL của máy thật - host)
+   # =========================================
+   user-service:
+      build: ./user-service
+      container_name: user-service
+      depends_on:
+#
+         eureka-service-1:
+            condition: service_started
+      ports:
+         - "8081:8081"
+      environment:
+         - SPRING_PROFILES_ACTIVE=docker
+         - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service-1:8761/eureka/,http://eureka-service-2:8762/eureka/
+         # Kết nối thẳng tới MySQL của máy thật (host)
+         - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/j2ee_user_service?createDatabaseIfNotExist=true
+         - SPRING_DATASOURCE_USERNAME=root
+         - SPRING_DATASOURCE_PASSWORD=
+      networks:
+         - spring-cloud-net
+
+   # =========================================
+   # TOUR SERVICE + MYSQL (Kết nối thẳng tới MySQL của máy thật - host)
+   # =========================================
+   tour-service:
+      build: ./tour-service
+      container_name: tour-service
+      depends_on:
+         eureka-service-1:
+            condition: service_started
+      ports:
+         - "8082:8082"
+      environment:
+         - SPRING_PROFILES_ACTIVE=docker
+         - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service-1:8761/eureka/,http://eureka-service-2:8762/eureka/
+         - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/j2ee_tour_service?createDatabaseIfNotExist=true
+         - SPRING_DATASOURCE_USERNAME=root
+         - SPRING_DATASOURCE_PASSWORD=
+      networks:
+         - spring-cloud-net
+
+   # =========================================
+   # SLOT SERVICE + MYSQL (Kết nối thẳng tới MySQL của máy thật - host)
+   # =========================================
+   slot-service:
+      build: ./slot-service
+      container_name: slot-service
+      depends_on:
+         eureka-service-1:
+            condition: service_started
+      ports:
+         - "8083:8083"
+      environment:
+         - SPRING_PROFILES_ACTIVE=docker
+         - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service-1:8761/eureka/,http://eureka-service-2:8762/eureka/
+         - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/j2ee_slot_service?createDatabaseIfNotExist=true
+         - SPRING_DATASOURCE_USERNAME=root
+         - SPRING_DATASOURCE_PASSWORD=
+      networks:
+         - spring-cloud-net
+
+   # =========================================
+   # BOOKING SERVICE + MYSQL (Kết nối thẳng tới MySQL của máy thật - host)
+   # =========================================
+   booking-service:
+      build: ./booking-service
+      container_name: booking-service
+      depends_on:
+         eureka-service-1:
+            condition: service_started
+      ports:
+         - "8084:8084"
+      environment:
+         - SPRING_PROFILES_ACTIVE=docker
+         - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service-1:8761/eureka/,http://eureka-service-2:8762/eureka/
+         - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/j2ee_booking_service?createDatabaseIfNotExist=true
+         - SPRING_DATASOURCE_USERNAME=root
+         - SPRING_DATASOURCE_PASSWORD=
+      networks:
+         - spring-cloud-net
+
+   # =========================================
+   # AREA SERVICE + MYSQL (Kết nối thẳng tới MySQL của máy thật - host)
+   # =========================================
+   area-service:
+      build: ./area-service
+      container_name: area-service
+      depends_on:
+         eureka-service-1:
+            condition: service_started
+      ports:
+         - "8085:8085"
+      environment:
+         - SPRING_PROFILES_ACTIVE=docker
+         - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://eureka-service-1:8761/eureka/,http://eureka-service-2:8762/eureka/
+         - SPRING_DATASOURCE_URL=jdbc:mysql://host.docker.internal:3306/j2ee_area_service?createDatabaseIfNotExist=true
+         - SPRING_DATASOURCE_USERNAME=root
+         - SPRING_DATASOURCE_PASSWORD=
+      networks:
+         - spring-cloud-net
+
+# =========================================
+# NETWORK
+# =========================================
+networks:
+   spring-cloud-net:
+      driver: bridge

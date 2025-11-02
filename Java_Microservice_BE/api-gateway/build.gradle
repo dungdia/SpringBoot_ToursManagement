@@ -1,0 +1,61 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.6'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.ra'
+version = '0.0.1-SNAPSHOT'
+description = 'api-gateway'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext {
+    set('springCloudVersion', "2025.0.0")
+}
+
+dependencies {
+    // JSON Web Token
+    implementation 'io.jsonwebtoken:jjwt-api:0.11.2'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.2'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.2'
+
+    //  Reactive stack cho Spring Cloud Gateway
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    //  Security reactive (phải dùng webflux version)
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    //  Gateway và Eureka client
+    implementation 'org.springframework.cloud:spring-cloud-starter-gateway'
+    implementation 'org.springframework.cloud:spring-cloud-starter-netflix-eureka-client'
+
+    //  Loại bỏ phần servlet ra khỏi Security nếu bị kéo vào
+    implementation('org.springframework.boot:spring-boot-starter-security') {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-web'
+    }
+
+    //  Test dependencies
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

@@ -1,0 +1,17 @@
+#admin-menu .active {
+   font-weight: bold;
+}
+
+#admin-menu .ant-btn {
+   position: fixed;
+}
+
+/* Tăng kích thước font cho toàn bộ văn bản trong menu */
+#admin-menu .custom-admin-menu .ant-menu-item .ant-menu-title-content {
+   font-size: 1rem;
+}
+
+/* Tăng kích thước của icon */
+#admin-menu .custom-admin-menu .ant-menu-item .anticon {
+   font-size: 1.25rem !important;
+}
