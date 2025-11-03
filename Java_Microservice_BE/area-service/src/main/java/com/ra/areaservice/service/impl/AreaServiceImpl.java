@@ -5,6 +5,7 @@ import com.ra.areaservice.model.dto.req.AreaRequestDTO;
 import com.ra.areaservice.model.entity.Areas;
 import com.ra.areaservice.repository.IAreaRepository;
 import com.ra.areaservice.service.IAreaService;
+import com.ra.areaservice.service.ITourServiceCommunication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AreaServiceImpl implements IAreaService {
     private final IAreaRepository areaRepository;
+    private final ITourServiceCommunication tourServiceCommunication;
 
 // Lấy toàn bộ khu vực không phân trang
     @Override
@@ -51,12 +53,34 @@ public class AreaServiceImpl implements IAreaService {
             area.setAreaName(areaRequestDTO.getAreaName());
         }
 
-        // Chỉ cập nhật trạng thái nếu có thay đổi
-        if(areaRequestDTO.getStatus() != null &&   !areaRequestDTO.getStatus().equals(area.getStatus()))
-        {
-            area.setStatus(areaRequestDTO.getStatus());
+        // Chỉ cập nhật trạng thái nếu có thay đổi và khu vực không được sử dụng trong bảng Tours
+        boolean isUsed = tourServiceCommunication.existsToursByAreaId(areaId);
+        if(isUsed){
+            area.setStatus(true);
+        }else {
+            if(areaRequestDTO.getStatus() != null &&   !areaRequestDTO.getStatus().equals(area.getStatus()))
+            {
+                area.setStatus(areaRequestDTO.getStatus());
+            }
         }
         return areaRepository.save(area);
+    }
+
+    @Override
+    public void deleteById(Long areaId) throws CustomException {
+        Areas area = findById(areaId);
+        // Kiểm tra xem khu vực có được sử dụng trong bảng Tours hay không
+        boolean isUsed = tourServiceCommunication.existsToursByAreaId(areaId);
+        if (isUsed) {
+            throw new CustomException("Không thể xóa Area (ID: " + areaId + ") vì nó đang được Tour sử dụng.");
+        }
+        if(area.getStatus()){
+            area.setStatus(false);
+            areaRepository.save(area);
+            throw new CustomException("Đã khóa khu vực thành công. Vui lòng xóa lại để xoá khu vực này.");
+        }
+
+        areaRepository.delete(area);
     }
 
     public Areas requestToEntity(AreaRequestDTO areaRequestDTO)

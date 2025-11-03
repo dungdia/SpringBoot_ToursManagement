@@ -11,4 +11,5 @@ public interface IAreaService {
     Areas save(AreaRequestDTO areaRequestDTO) throws CustomException;
     Areas findById(Long areaId) throws CustomException;
     Areas update(AreaRequestDTO areaRequestDTO, Long areaId) throws CustomException;
+    void deleteById(Long areaId) throws CustomException;
 }

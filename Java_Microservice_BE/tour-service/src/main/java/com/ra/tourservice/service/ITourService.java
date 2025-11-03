@@ -18,8 +18,11 @@ public interface ITourService {
     Tours saveDayDetails(TourRequestDTO tourRequestDTO, Long tourId) throws CustomException;
 //    Thêm Images vào Tour đã có sẵn
     Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws CustomException;
+//    Cập nhật Tour theo Id
+    TourResponseDTO updateTour(UpdateTourRequestDTO updateTourRequestDTO, Long tourId) throws CustomException;
 //    Cập nhật DayDetail theo TourId và DayDetailId
     Tours updateDayDetail(UpdateTourRequestDTO updateTourRequestDTO, Long tourId, Long dayDetailId) throws CustomException;
+//    Cập nhật Images theo TourId và ImageId
     Tours updateImages(UpdateTourRequestDTO updateTourRequestDTO, Long tourId, Long imageId) throws CustomException;
 //    Lấy DayDetail theo TourId và DayDetailId
     DayDetails findDayDetailById(Long tourId,Long dayDetailId) throws CustomException;
@@ -29,4 +32,5 @@ public interface ITourService {
     void deleteById(Long tourId) throws CustomException;
 //    Xóa DayDetail theo TourId và DayDetailId
     void deleteDayDetailById(Long tourId, Long dayDetailId) throws CustomException;
+    void deleteImageById(Long tourId, Long imageId) throws CustomException;
 }

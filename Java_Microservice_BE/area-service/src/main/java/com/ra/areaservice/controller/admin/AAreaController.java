@@ -5,6 +5,7 @@ import com.ra.areaservice.model.dto.req.AreaRequestDTO;
 import com.ra.areaservice.model.entity.Areas;
 import com.ra.areaservice.security.annotation.RequireRole;
 import com.ra.areaservice.service.IAreaService;
+import com.ra.areaservice.service.ITourServiceCommunication;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AAreaController {
     private  final IAreaService areaService;
+    private final ITourServiceCommunication tourServiceCommunication;
 
     @GetMapping("/test")
     public String test(HttpServletRequest request) {
@@ -73,6 +75,17 @@ public class AAreaController {
             // Xử lý các ngoại lệ khác nếu có
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Đã xảy ra lỗi trong quá trình xử lý: " + e.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @DeleteMapping("/{areaId}")
+    public ResponseEntity<?> deleteAreaById(@PathVariable Long areaId) {
+        try {
+            areaService.deleteById(areaId);
+            return ResponseEntity.ok().body("Xoá khu vực thành công.");
+        } catch (CustomException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
 }

@@ -1,4 +1,4 @@
-package com.ra.tourservice.config.AppConfig;
+package com.ra.bookingservice.config.AppConfig;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.client.loadbalancer.LoadBalanced;

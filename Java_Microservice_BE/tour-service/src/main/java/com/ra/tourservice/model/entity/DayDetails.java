@@ -3,6 +3,8 @@ package com.ra.tourservice.model.entity;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.*;
 
 import java.util.Date;
@@ -22,6 +24,9 @@ public class DayDetails {
     private Date departureDate;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss EEEE", timezone = "Asia/Ho_Chi_Minh")
     private Date returnDate;
+    @Min(50)
+    @Max(200)
+    private Long slot;
     private Long price;
     private Boolean status;
 
