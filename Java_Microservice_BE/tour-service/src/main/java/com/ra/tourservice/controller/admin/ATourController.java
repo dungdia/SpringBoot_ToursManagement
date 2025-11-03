@@ -7,6 +7,7 @@ import com.ra.tourservice.model.dto.resp.TourResponseDTO;
 import com.ra.tourservice.model.entity.Tours;
 import com.ra.tourservice.security.annotation.RequireRole;
 import com.ra.tourservice.service.ITourService;
+import com.ra.tourservice.service.ITourToAreaService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ATourController {
     private final ITourService tourService;
+    private final ITourToAreaService tourToAreaService;
 
     @GetMapping("/test")
     public String test(HttpServletRequest request) {
@@ -76,6 +78,19 @@ public class ATourController {
     }
 
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @PutMapping("/{tourId}" )
+    public ResponseEntity<?> updateTourById(
+            @Valid @RequestBody UpdateTourRequestDTO updateTourRequestDTO,
+            @PathVariable Long tourId)
+    {
+        try {
+            return ResponseEntity.ok().body(tourService.updateTour(updateTourRequestDTO, tourId));
+        } catch (CustomException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
     @PutMapping("/{tourId}/details/{dayDetailId}" )
     public ResponseEntity<?> updateDayDetailByTourIdAndDetailId(
             @Valid @RequestBody UpdateTourRequestDTO updateTourRequestDTO,
@@ -124,6 +139,42 @@ public class ATourController {
             tourService.deleteDayDetailById(dayId, dayDetailId);
             return ResponseEntity.ok().body("Xoá chi tiết ngày thành công.");
         } catch (CustomException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @DeleteMapping("/{tourId}/images/{imageId}")
+    public ResponseEntity<?> deleteImageById(
+            @PathVariable Long tourId,
+            @PathVariable Long imageId)
+    {
+        try {
+            tourService.deleteImageById(tourId, imageId);
+            return ResponseEntity.ok().body("Xoá hình ảnh thành công.");
+        } catch (CustomException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+//    ===============================
+//         Tour liên quan đến Area
+//    ===============================
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/areas/{areaId}/check")
+    public ResponseEntity<?> checkIfAreaIsUsed(@PathVariable Long areaId){
+        Boolean isUsed = tourToAreaService.checkIfAreaIsUsed(areaId);
+        return ResponseEntity.ok().body(isUsed);
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/{areaId}/tours")
+    public ResponseEntity<?> ExistsByAreaId(@PathVariable Long areaId) throws CustomException {
+        try {
+            Boolean isExists = tourToAreaService.existsByAreaId(areaId);
+            return ResponseEntity.ok().body(isExists);
+        }catch (CustomException ex){
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }

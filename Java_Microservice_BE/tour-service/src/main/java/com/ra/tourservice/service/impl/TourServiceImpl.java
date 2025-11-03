@@ -48,11 +48,18 @@ public class TourServiceImpl implements ITourService {
         return responseDTO;
     }
 
-
 //    Thêm mới 1 Tour
     @Override
     public TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException {
         try {
+            if(tourRequestDTO.getTourName() == null || tourRequestDTO.getTourName().isEmpty()){
+                throw new CustomException("Tên Tour không được để trống!");
+            }
+
+            if (tourRequestDTO.getDescription() == null || tourRequestDTO.getDescription().isEmpty()) {
+                throw new CustomException("Mô tả Tour không được để trống!");
+            }
+
             Long areaId = tourRequestDTO.getAreaId();
             if (areaId == null) {
                 throw new CustomException("Area ID không được để trống!");
@@ -87,6 +94,14 @@ public class TourServiceImpl implements ITourService {
                         throw new CustomException("Ngày khởi hành: "+formatDate(current.getDepartureDate())+
                                 " và ngày trả về: "+formatDate(current.getReturnDate())+" bị trùng nhau!");
                     }
+                }
+
+                if(current.getPrice() == null || current.getPrice() <= 0){
+                    throw new CustomException("Giá trong chi tiết ngày không được để trống hoặc nhỏ hơn bằng 0");
+                }
+
+                if(current.getSlot() == null || current.getSlot() < 50 || current.getSlot() > 200){
+                    throw new CustomException("Số chỗ trong chi tiết ngày không được để trống hoặc nhỏ hơn 50 hoặc lớn hơn 200");
                 }
 
                 // Set status = true cho mỗi DayDetail
@@ -145,6 +160,14 @@ public class TourServiceImpl implements ITourService {
                                 " và ngày trả về: "+formatDate(detail.getReturnDate())+" bị trùng nhau với ngày khác!");
                     }
 
+                    if(detail.getPrice() == null || detail.getPrice() <= 0){
+                        throw new CustomException("Giá trong chi tiết ngày không được để trống hoặc nhỏ hơn bằng 0");
+                    }
+
+                    if(detail.getSlot() == null || detail.getSlot() < 50 || detail.getSlot() > 200){
+                        throw new CustomException("Số chỗ trong chi tiết ngày không được để trống hoặc nhỏ hơn 50 hoặc lớn hơn 200");
+                    }
+
                     // Set status = true cho các DayDetail mới
                     detail.setStatus(true);
                     detail.setTour(tour); // thiết lập quan hệ cha-con
@@ -198,6 +221,41 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
     return tourRepository.save(tour);
 }
 
+    @Override
+    public TourResponseDTO updateTour(UpdateTourRequestDTO updateTourRequestDTO, Long tourId) throws CustomException {
+        Tours existingTour = findById(tourId);
+
+        // Cập nhật các trường khác null và thực sự khác biệt
+        if (updateTourRequestDTO.getTourName() != null &&
+                !updateTourRequestDTO.getTourName().equals(existingTour.getTourName())) {
+
+            existingTour.setTourName(updateTourRequestDTO.getTourName());
+        }
+
+        if (updateTourRequestDTO.getDescription() != null &&
+                !updateTourRequestDTO.getDescription().equals(existingTour.getDescription())) {
+
+            existingTour.setDescription(updateTourRequestDTO.getDescription());
+        }
+
+        if (updateTourRequestDTO.getAreaId() != null &&
+                !updateTourRequestDTO.getAreaId().equals(existingTour.getAreaId())) {
+
+            Long areaId = updateTourRequestDTO.getAreaId();
+            AreaResponseDTO area = areaServiceCommunication.getAreaById(areaId);
+            if (area == null || !area.getStatus()) {
+                throw new CustomException("Area (ID: " + areaId + ") không tồn tại hoặc không hoạt động.");
+            }
+            existingTour.setAreaId(areaId);
+        }
+
+        // Lưu Tour đã cập nhật
+        Tours updatedTour = tourRepository.save(existingTour);
+
+        // Trả về TourResponseDTO
+        return mapEntityToResponseDTO(updatedTour);
+    }
+
 
     @Override
     public Tours updateDayDetail(UpdateTourRequestDTO updateTourRequestDTO, Long tourId, Long dayDetailId)
@@ -249,8 +307,19 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
             // Cập nhật Giá
             if (incomingDetail.getPrice() != null &&
                     !incomingDetail.getPrice().equals(existingDetail.getPrice())) {
-
+                if(incomingDetail.getPrice() <= 0){
+                    throw new CustomException("Giá trong chi tiết ngày không được để trống hoặc nhỏ hơn bằng 0");
+                }
                 existingDetail.setPrice(incomingDetail.getPrice());
+            }
+
+            // Cập nhật Số chỗ (Slot)
+            if (incomingDetail.getSlot() != null &&
+                    !incomingDetail.getSlot().equals(existingDetail.getSlot())) {
+                if(incomingDetail.getSlot() < 50 || incomingDetail.getSlot() > 200){
+                    throw new CustomException("Số chỗ trong chi tiết ngày không được để trống hoặc nhỏ hơn 50 hoặc lớn hơn 200");
+                }
+                existingDetail.setSlot(incomingDetail.getSlot());
             }
 
             // Cập nhật Trạng thái (Status)
@@ -323,8 +392,15 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
 
         // Nếu có DayDetails, không cho phép xóa
         if (tour.getDayDetails() != null && !tour.getDayDetails().isEmpty()) {
+//            Xóa từng cái một DayDetails liên quan trước khi xóa Tour
             throw new CustomException("Không thể xóa Ngày này (ID: " + tourId + ") vì nó có chứa " +
                     tour.getDayDetails().size() + " chi tiết ngày liên quan. Vui lòng xóa chi tiết ngày trước.");
+//            dayDetailRepository.deleteAll(tour.getDayDetails()); // Xóa tất cả DayDetails liên quan trước khi xóa Tour
+        }
+
+        if(tour.getImages() != null && !tour.getImages().isEmpty()){
+            // Xóa tất cả Images liên quan trước khi xóa Tour
+            imageRepository.deleteAll(tour.getImages());
         }
 
         // Nếu danh sách chi tiết ngày rỗng, tiến hành xóa
@@ -336,6 +412,28 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
     public void deleteDayDetailById(Long tourId, Long dayDetailId) throws CustomException {
         DayDetails dayDetail = findDayDetailById(tourId, dayDetailId);
         dayDetailRepository.delete(dayDetail);
+    }
+
+//    Xóa Image theo TourId và ImageId
+    @Override
+    public void deleteImageById(Long tourId, Long imageId) throws CustomException {
+        Tours tour = findById(tourId);
+        Set<Images> existingImages = tour.getImages(); // Lấy tập hợp Images hiện tại
+
+        // Tìm hình ảnh cần xóa
+        Images imageToDelete = existingImages.stream()
+                .filter(img -> img.getId().equals(imageId))
+                .findFirst()
+                .orElseThrow(() -> new CustomException("Không tìm thấy hình ảnh có Id là: " + imageId));
+
+        // Xóa hình ảnh khỏi tập hợp của Tour
+        existingImages.remove(imageToDelete);
+
+        // Xóa hình ảnh khỏi cơ sở dữ liệu
+        imageRepository.delete(imageToDelete);
+
+        // Lưu Tour sau khi xóa hình ảnh
+        tourRepository.save(tour);
     }
 
     // Hàm định dạng ngày tháng theo yêu cầu

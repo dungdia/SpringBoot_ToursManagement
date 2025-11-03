@@ -15,6 +15,7 @@ import java.util.Set;
 public class UpdateTourRequestDTO {
     private String tourName;
     private String description;
+    private Long areaId;
     private String image;
     private DayDetails dayDetail;
 }
