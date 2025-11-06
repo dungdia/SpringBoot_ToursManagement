@@ -1,5 +1,5 @@
 # Dockerfile
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk
 # Thư mục làm việc trong container
 WORKDIR /app
 # Copy file JAR đã build từ Gradle

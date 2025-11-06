@@ -24,7 +24,7 @@ public class DayDetails {
     private Date departureDate;
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy HH:mm:ss EEEE", timezone = "Asia/Ho_Chi_Minh")
     private Date returnDate;
-    @Min(50)
+    @Min(0)
     @Max(200)
     private Long slot;
     private Long price;

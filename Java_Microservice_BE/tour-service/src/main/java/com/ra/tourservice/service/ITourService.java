@@ -3,6 +3,7 @@ package com.ra.tourservice.service;
 import com.ra.tourservice.exception.CustomException;
 import com.ra.tourservice.model.dto.req.TourRequestDTO;
 import com.ra.tourservice.model.dto.req.UpdateTourRequestDTO;
+import com.ra.tourservice.model.dto.resp.DayDetailResponseDTO;
 import com.ra.tourservice.model.dto.resp.TourResponseDTO;
 import com.ra.tourservice.model.entity.DayDetails;
 import com.ra.tourservice.model.entity.Tours;
@@ -14,6 +15,7 @@ public interface ITourService {
 //    Thêm mới 1 Tour
     TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException;
     Tours findById(Long tourId) throws CustomException;
+    DayDetailResponseDTO findDayDetailById(Long dayDetailId) throws CustomException;
 //    Thêm DayDetails vào Tour đã có sẵn
     Tours saveDayDetails(TourRequestDTO tourRequestDTO, Long tourId) throws CustomException;
 //    Thêm Images vào Tour đã có sẵn
@@ -33,4 +35,7 @@ public interface ITourService {
 //    Xóa DayDetail theo TourId và DayDetailId
     void deleteDayDetailById(Long tourId, Long dayDetailId) throws CustomException;
     void deleteImageById(Long tourId, Long imageId) throws CustomException;
+
+//    Trừ số lượng slots trong DayDetails
+    void deductSlots(Long dayDetailId, Long slots) throws CustomException;
 }

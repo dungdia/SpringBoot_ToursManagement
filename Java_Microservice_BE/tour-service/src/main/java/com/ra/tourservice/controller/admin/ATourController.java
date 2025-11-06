@@ -40,6 +40,27 @@ public class ATourController {
     }
 
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/{tourId}")
+    public ResponseEntity<?> getTourById(@PathVariable Long tourId){
+        try {
+            Tours tours = tourService.findById(tourId);
+            return ResponseEntity.ok().body(tours);
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/dayDetail/{dayDetailId}")
+    public ResponseEntity<?> getDayDetailById(@PathVariable Long dayDetailId){
+        try {
+            return ResponseEntity.ok().body(tourService.findDayDetailById(dayDetailId));
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
     @PostMapping
     public  ResponseEntity<?> addNewTour(@Valid @RequestBody TourRequestDTO tourRequestDTO){
         try {
@@ -152,6 +173,20 @@ public class ATourController {
         try {
             tourService.deleteImageById(tourId, imageId);
             return ResponseEntity.ok().body("Xoá hình ảnh thành công.");
+        } catch (CustomException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @PutMapping("/dayDetails/deductSlots/{dayDetailId}/{quantity}")
+    public ResponseEntity<?> deductSlots(
+            @PathVariable Long dayDetailId,
+            @PathVariable Long quantity)
+    {
+        try {
+            tourService.deductSlots(dayDetailId, quantity);
+            return ResponseEntity.ok().body("Đã trừ số lượng slot thành công.");
         } catch (CustomException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

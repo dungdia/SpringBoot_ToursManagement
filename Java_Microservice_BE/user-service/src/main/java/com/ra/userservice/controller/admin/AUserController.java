@@ -108,6 +108,7 @@ public class AUserController {
         }
     }
 
+
     @PutMapping("/change-password/{email}")
     public ResponseEntity<?> changePassword(@PathVariable String email,@RequestParam String newPassword) throws CustomException {
         try {
