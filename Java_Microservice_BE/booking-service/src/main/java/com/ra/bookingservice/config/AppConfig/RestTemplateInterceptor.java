@@ -8,6 +8,7 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.io.Console;
 import java.io.IOException;
 
 public class RestTemplateInterceptor implements ClientHttpRequestInterceptor {
@@ -29,7 +30,7 @@ public class RestTemplateInterceptor implements ClientHttpRequestInterceptor {
         if (attrs != null) {
             HttpServletRequest currentRequest = attrs.getRequest();
             String userRoles = currentRequest.getHeader("X-User-Role"); // Lấy Role từ request đến
-
+            System.out.println("User Roles in Interceptor: " + userRoles);
             if (userRoles != null) {
                 // Truyền header X-User-Role sang request mới
                 request.getHeaders().add("X-User-Role", userRoles);

@@ -4,6 +4,8 @@ import com.ra.tourservice.exception.CustomException;
 import com.ra.tourservice.model.dto.req.TourRequestDTO;
 import com.ra.tourservice.model.dto.req.UpdateTourRequestDTO;
 import com.ra.tourservice.model.dto.resp.AreaResponseDTO;
+import com.ra.tourservice.model.dto.resp.DayDetailResponseDTO;
+import com.ra.tourservice.model.dto.resp.TourInfoBasicResponseDTO;
 import com.ra.tourservice.model.dto.resp.TourResponseDTO;
 import com.ra.tourservice.model.entity.DayDetails;
 import com.ra.tourservice.model.entity.Images;
@@ -15,7 +17,6 @@ import com.ra.tourservice.service.IAreaServiceCommunication;
 import com.ra.tourservice.service.ITourService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -125,7 +126,15 @@ public class TourServiceImpl implements ITourService {
                 .orElseThrow(() -> new CustomException("Không tìm thấy Ngày có Id là:  " + tourId));
     }
 
-//    Thêm DayDetails vào Tour đã có sẵn
+    @Override
+    public DayDetailResponseDTO  findDayDetailById(Long dayDetailId) throws CustomException {
+        DayDetails dayDetail = dayDetailRepository.findById(dayDetailId)
+                .orElseThrow(() -> new CustomException("Không tìm thấy Chi tiết Ngày có Id là: " + dayDetailId));
+
+        return mapToDayDetailResponseDTO(dayDetail);
+    }
+
+    //    Thêm DayDetails vào Tour đã có sẵn
     @Override
     public Tours saveDayDetails(TourRequestDTO tourRequestDTO, Long tourId) throws CustomException {
         try {
@@ -436,6 +445,20 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
         tourRepository.save(tour);
     }
 
+    @Override
+    public void deductSlots(Long dayDetailId, Long slots) throws CustomException {
+        DayDetails dayDetail = dayDetailRepository.findById(dayDetailId)
+                .orElseThrow(() -> new CustomException("Không tìm thấy Chi tiết Ngày có Id là: " + dayDetailId));
+        if (dayDetail.getSlot() < slots) {
+            throw new CustomException("Không đủ chỗ trống để đặt. Chỗ trống hiện tại: " + dayDetail.getSlot());
+        }
+        if(slots <= 0){
+            throw new CustomException("Phải đặt ít nhất 1 chỗ.");
+        }
+        dayDetail.setSlot(dayDetail.getSlot() - slots);
+        dayDetailRepository.save(dayDetail);
+    }
+
     // Hàm định dạng ngày tháng theo yêu cầu
     private String formatDate(Date date) {
         if (date == null) {
@@ -469,7 +492,31 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
                 .map(url -> Images.builder().url(url).build())
                 .collect(Collectors.toSet());
     }
-    // Chuyển từ DTO sang Entity
+
+//    Chuyển từ Entity sang DayDetailResponseDTO
+    private DayDetailResponseDTO mapToDayDetailResponseDTO(DayDetails dayDetail) throws CustomException {
+        Tours tour = dayDetail.getTour();
+        // Lấy chi tiết Area từ Microservice khác
+        AreaResponseDTO areaDetails = areaServiceCommunication.getAreaById(tour.getAreaId());
+
+        TourInfoBasicResponseDTO tourInfo = TourInfoBasicResponseDTO.builder()
+                .tourName(tour.getTourName())
+                .description(tour.getDescription())
+                .area(areaDetails)
+                .build();
+
+        return DayDetailResponseDTO.builder()
+                .id(dayDetail.getId())
+                .departureDate(dayDetail.getDepartureDate())
+                .returnDate(dayDetail.getReturnDate())
+                .slot(dayDetail.getSlot())
+                .price(dayDetail.getPrice())
+                .status(dayDetail.getStatus())
+                .tour(tourInfo)
+                .build();
+    }
+
+    // Chuyển từ DTO sang Entity Tours
     public Tours requestToEntity(TourRequestDTO tourRequestDTO) {
         // Chuyển đổi Set<String> URLs thành Set<Images> Entities
         Set<Images> tourImages = mapImages(tourRequestDTO.getImages());
