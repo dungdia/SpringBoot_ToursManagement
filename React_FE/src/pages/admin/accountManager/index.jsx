@@ -536,20 +536,10 @@ export default function AccountManager() {
             message.error("Xóa thất bại, vui lòng thử lại!");
          }
       } catch (error) {
-         let userStatus;
-         {
-            users.map((user) => {
-               if (user.id === baseId && user.status)
-                  return (userStatus = true);
-               else {
-                  return (userStatus = false);
-               }
-            });
-         }
-         if (error.status === HttpStatusCode.BadRequest && userStatus) {
-            message.success(error?.response?.data);
+         if (error.status === HttpStatusCode.BadRequest) {
+            message.warning(error?.response?.data);
          } else {
-            message.success(error?.response?.data);
+            message.error("Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau!");
          }
       } finally {
          setIsDeleteLoading(false);
@@ -993,7 +983,7 @@ export default function AccountManager() {
                      }
                      onChange={handleChangePage}
                      defaultPageSize={pageSize}
-                     defaultCurrent={currentPage}
+                     current={currentPage}
                      pageSizeOptions={[5, 10, 20, 50, 100]}
                   />
                </div>

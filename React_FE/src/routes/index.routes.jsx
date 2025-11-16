@@ -13,6 +13,7 @@ const StatisticManager = React.lazy(() =>
 const AccountManager = React.lazy(() => import("@/pages/admin/accountManager"));
 const TourManager = React.lazy(() => import("@/pages/admin/tourManager"));
 const OrderManager = React.lazy(() => import("@/pages/admin/orderManager"));
+const AreaManager = React.lazy(() => import("@/pages/admin/areaManager"));
 const NotFound = React.lazy(() => import("@/pages/admin/notFound"));
 
 // Các route liên quan tới trang user
@@ -158,6 +159,14 @@ const routes = createBrowserRouter([
             element: (
                <LazyLoadComponent>
                   <TourManager />
+               </LazyLoadComponent>
+            ),
+         },
+         {
+            path: "area-manager",
+            element: (
+               <LazyLoadComponent>
+                  <AreaManager />
                </LazyLoadComponent>
             ),
          },

@@ -48,7 +48,6 @@ public class WebSecurityConfig {
                                 .requestMatchers("/api/v1/admin/users/change-password/{email}").permitAll()
                                 .requestMatchers("/api/v1/admin/users/OTP").permitAll()
                                 .requestMatchers("/api/v1/admin/users/OTP/change-password-now").permitAll()
-                                .requestMatchers("/api/v1/auth/facebook-login").permitAll()
                                 .requestMatchers("/api/v1/auth/**").permitAll()
                                 .requestMatchers("/api/v1/admin/**").hasAnyAuthority(RoleName.ROLE_OWNER.toString(), RoleName.ROLE_ADMIN.toString())
                                 .requestMatchers("/api/v1/user/**").hasAuthority(RoleName.ROLE_USER.toString())

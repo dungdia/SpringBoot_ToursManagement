@@ -14,7 +14,7 @@ const getAllUsers = async (
    statusUser = null,
    gender = null
 ) => {
-   let url = `admin/users?search=${search}&page=${currentPage}&size=${pageSize}`;
+   let url = `/admin/users?search=${search}&page=${currentPage}&size=${pageSize}`;
    // Thêm tham số statusUser nếu không phải là null
    if (statusUser !== null) {
       url += `&statusUser=${statusUser}`;
