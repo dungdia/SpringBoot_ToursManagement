@@ -13,7 +13,7 @@ public class TourServiceCommunicationImpl implements ITourServiceCommunication {
 
     @Override
     public Boolean checkIfAreaIsUsedInTour(Long areaId) {
-        String url = TOUR_SERVICE_URL +"admin/tours/"+ "/areas/"+ areaId+"/check" ;
+        String url = TOUR_SERVICE_URL +"admin/tours/"+ "areas/"+ areaId+"/check" ;
         return restTemplate.getForObject(url, Boolean.class);
     }
 

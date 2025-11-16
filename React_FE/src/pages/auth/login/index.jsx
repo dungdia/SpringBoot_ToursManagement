@@ -495,6 +495,13 @@ export default function Login() {
 
    // Hàm login vào bằng Facebook
    const handleFacebookLogin = () => {
+      if (typeof FB === "undefined") {
+         message.error(
+            "Facebook SDK chưa được tải. Vui lòng đợi hoặc làm mới trang."
+         );
+         return;
+      }
+
       FB.login(
          function (response) {
             if (response.authResponse) {
@@ -505,6 +512,18 @@ export default function Login() {
                      try {
                         const email = userInfo.email;
                         const name = userInfo.name;
+                        console.log(userInfo);
+
+                        console.log("Email từ Facebook:", email);
+                        console.log("Tên từ Facebook:", name);
+
+                        if (!email) {
+                           // Nếu email không tồn tại (undefined), hiển thị thông báo lỗi rõ ràng
+                           message.error(
+                              "Đăng nhập thất bại: Facebook không chia sẻ địa chỉ Email của bạn. Vui lòng đảm bảo bạn đã cấp quyền truy cập email trong hộp thoại đăng nhập của Facebook."
+                           );
+                           return; // Dừng tiến trình đăng nhập
+                        }
 
                         // Gọi API backend của bạn
                         const res = await loginWithFacebook(email, name);

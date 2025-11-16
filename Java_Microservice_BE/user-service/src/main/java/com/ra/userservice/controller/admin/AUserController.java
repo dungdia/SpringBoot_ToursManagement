@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -30,6 +31,7 @@ public class AUserController {
     private  final IUserService userService;
     private final IOTPService otpService;
     private  final IUserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
 //    @GetMapping
 //    public ResponseEntity<List<UserResponse>> findAll(){
@@ -197,13 +199,12 @@ public class AUserController {
     public ResponseEntity<?> sendMailChangePassword(@RequestParam String email) throws CustomException {
         try {
             Users users = userRepository.findByEmail(email).orElse(null);
-            if(users ==null){
-                // Gửi mã password
-                String password = "123456";
-
+            String password ="123456";
+            if(users !=null &&  passwordEncoder.matches(password,users.getPassword()))
+            {
                 // Chèn mã OTP vào nội dung HTML
                 String htmlContent = "<h1>Xin Chào!</h1>" +
-                        "<p>Mật khẩu mặc định của bạn là: <strong>" + password + "</strong></p>" +
+                        "<p>Mật khẩu mặc định của bạn hiện đang là: <strong>" + password + "</strong></p>" +
                         "<p style=\"color: red;\"><strong>Cần thay đổi ngay lập tức!</strong></p>";
 
                 // Gửi email với mã OTP
@@ -215,15 +216,15 @@ public class AUserController {
 
                 return ResponseEntity.ok().body(response);
             }else {
-                // Gửi mã password
-                String info = "Bạn đã đăng nhập tài khoản bằng Google";
+                String info = "Bạn vừa đăng nhập tài khoản thành công bằng Google vào lúc " +
+                        java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy"));
 
-                // Chèn mã OTP vào nội dung HTML
-                String htmlContent = "<h1>Xin Chào!</h1>" +
-                        "<p><strong>" + info + "</strong></p>";
+                // Chèn thông báo đăng nhập
+                String htmlContent = "<h1>Thông Báo Đăng Nhập Thành Công</h1>" +
+                        "<p><strong>" + info + "</strong></p>" ;
 
                 // Gửi email với mã OTP
-                otpService.sendHTMLMessage(email, "Send Password", htmlContent);
+                otpService.sendHTMLMessage(email, "Thông Báo Đăng Nhập Thành Công", htmlContent);
                 // Tạo đối tượng trả về thông báo và mã OTP
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "Đã gửi thông báo đến email thành công");

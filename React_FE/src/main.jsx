@@ -15,6 +15,8 @@ function FacebookSDKLoader() {
          // Sử dụng window.location.origin để lấy URL gốc hiện tại (ví dụ: https://luetta-flawed-kent.ngrok-free.dev)
          // Điều này quan trọng để Facebook SDK biết rằng nó đang chạy trên kết nối bảo mật.
          const currentOrigin = window.location.origin;
+         console.log(currentOrigin);
+
          FB.init({
             appId: import.meta.env.VITE_FACEBOOK_APP_ID,
             cookie: true,

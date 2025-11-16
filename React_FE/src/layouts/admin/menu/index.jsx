@@ -2,6 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import "./menu.css";
 import { useState } from "react";
 import {
+   AreaChartOutlined,
    CarOutlined,
    ControlOutlined,
    MenuFoldOutlined,
@@ -17,7 +18,7 @@ export default function MenuAdmin() {
    const location = useLocation();
 
    const { isOwner } = useAdmin();
-   
+
    const items = [
       {
          key: "1",
@@ -51,6 +52,15 @@ export default function MenuAdmin() {
       },
       {
          key: "4",
+         icon: <AreaChartOutlined />,
+         label: (
+            <NavLink to="/admin/area-manager">
+               <span> Quản lý khu vực</span>
+            </NavLink>
+         ),
+      },
+      {
+         key: "5",
          icon: <OrderedListOutlined />,
          label: (
             <NavLink to="/admin/order-manager">
@@ -71,7 +81,8 @@ export default function MenuAdmin() {
          "/admin": "1",
          "/admin/account-manager": "2",
          "/admin/tour-manager": "3",
-         "/admin/order-manager": "4",
+         "/admin/area-manager": "4",
+         "/admin/order-manager": "5",
       };
       const currentPath = location.pathname;
 
