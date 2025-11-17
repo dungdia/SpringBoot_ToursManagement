@@ -1,5 +1,11 @@
 import { getAllUsers } from "@/services/adminService";
-import { createArea, getAllAreas, removeArea, unblockStatus } from "@/services/areaService";
+import {
+   createArea,
+   getAllAreas,
+   removeArea,
+   unblockStatus,
+   updateArea,
+} from "@/services/areaService";
 import {
    Button,
    Form,
@@ -123,7 +129,7 @@ export default function AreaManager() {
                   {
                      <Button
                         size="large"
-                        // onClick={() => handleShowUpdateModal(area)}
+                        onClick={() => handleEditArea(area)}
                         type="primary"
                         ghost
                      >
@@ -184,23 +190,44 @@ export default function AreaManager() {
 
    // Ẩn modal thêm
    const handleCloseModal = () => {
-      formAddOrUpdateArea.resetFields();
-
       setIsShowModal(false);
+      setBaseId(null);
+      formAddOrUpdateArea.resetFields();
    };
 
-   // Hàm xác nhận thêm khu vực
+   // Hiểm thị modal cập nhật
+   const handleEditArea = (area) => {
+      setIsShowModal(true);
+      setBaseId(area.id);
+      formAddOrUpdateArea.setFieldsValue({
+         areaName: area.areaName,
+         status: area.status,
+      });
+   };
+
+   // Hàm xác nhận thêm / cập nhật khu vực
    const onFinish = async (values) => {
       try {
          setIsLoading(true);
-
-         const response = await createArea(values);
-
-         if (response) {
-            message.success("Thêm khu vực thành công!");
-            handleCloseModal();
-            fetchAreas();
+         if (baseId) {
+            const responseUpdate = await updateArea(baseId, values);
+            if (responseUpdate.status === 200) {
+               message.success("Cập nhật danh mục thành công!");
+            } else {
+               message.error("Cập nhật danh mục thất bại, vui lòng thử lại!");
+               return;
+            }
+         } else {
+            const responseCreate = await createArea(values);
+            if (responseCreate.status === 201) {
+               message.success("Thêm khu vực thành công!");
+            } else {
+               message.error("Thêm khu vực thất bại, vui lòng thử lại!");
+               return;
+            }
          }
+         fetchAreas();
+         handleCloseModal();
       } catch (error) {
          if (error.response.status === HttpStatusCode.BadRequest) {
             message.error(error.response.data);
@@ -313,10 +340,10 @@ export default function AreaManager() {
       : "text-gray-500"; // Mặc định nếu không tìm thấy area hoặc area rỗng
    return (
       <>
-         {/* Giao diện thêm khu vực */}
+         {/* Giao diện thêm / cập nhật khu vực */}
          <Modal
             footer={false}
-            title="Thêm khu vực"
+            title={baseId ? "Cập nhật khu vực" : "Thêm khu vực"}
             open={isShowModal}
             onCancel={handleCloseModal}
          >
@@ -387,7 +414,7 @@ export default function AreaManager() {
                         size="large"
                         htmlType="submit"
                      >
-                        Thêm
+                        {baseId ? "Cập nhật" : "Thêm"}
                      </Button>
                   </div>
                </Form.Item>
@@ -446,7 +473,7 @@ export default function AreaManager() {
             </div>
          </Modal>
 
-         {/* Modal mở khóa trạng thái tài khoản */}
+         {/* Modal mở khóa trạng thái khu vực */}
          <Modal
             open={isShowUnblockStatus}
             onCancel={handleCloseUnblockStatus}
@@ -525,6 +552,7 @@ export default function AreaManager() {
                   loading={isAreaLoading}
                   placeholder="Tìm kiếm khu vực"
                   className="w-[350px]"
+                  allowClear
                   value={searchValue}
                   onChange={(e) => {
                      setSearchValue(e.target.value);
@@ -544,7 +572,7 @@ export default function AreaManager() {
             />
          </div>
 
-         {/* Giao diện tìm kiếm */}
+         {/* Giao diện phân trang */}
          <div className="flex justify-end">
             {totalElements <= 8 ? (
                ""

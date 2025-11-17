@@ -27,6 +27,11 @@ const createArea = async (values) => {
    return response;
 };
 
+const updateArea = async (id, values) => {
+   const response = await baseURL.put(`/admin/areas/${id}`, values);
+   return response;
+};
+
 const removeArea = async (id) => {
    const response = await baseURL.delete(`/admin/areas/${id}`);
    return response;
@@ -37,4 +42,4 @@ const unblockStatus = async (id) => {
    return response;
 };
 
-export { getAllAreas, createArea, removeArea, unblockStatus };
+export { getAllAreas, createArea, updateArea, removeArea, unblockStatus };
