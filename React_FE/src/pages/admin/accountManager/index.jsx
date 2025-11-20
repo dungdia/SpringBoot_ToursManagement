@@ -950,6 +950,7 @@ export default function AccountManager() {
                   loading={isLoading}
                   placeholder="Tìm kiếm tài khoản"
                   className="w-[350px]"
+                  allowClear
                   value={searchValue}
                   onChange={(e) => {
                      setSearchValue(e.target.value);

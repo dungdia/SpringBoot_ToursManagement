@@ -49,6 +49,53 @@ public class TourServiceImpl implements ITourService {
         return responseDTO;
     }
 
+//    Thêm mới 1 Tour không cần dayDetails và images
+//    @Override
+//    public TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException {
+//        try {
+////            Tên Tour và Mô tả không được để trống
+//            if(tourRequestDTO.getTourName() == null || tourRequestDTO.getTourName().isEmpty()){
+//                throw new CustomException("Tên Tour không được để trống!");
+//            }
+//
+//            if (tourRequestDTO.getDescription() == null || tourRequestDTO.getDescription().isEmpty()) {
+//                throw new CustomException("Mô tả Tour không được để trống!");
+//            }
+//
+////            Kiểm tra AreaId
+//            Long areaId = tourRequestDTO.getAreaId();
+//            if (areaId == null) {
+//                throw new CustomException("Area ID không được để trống!");
+//            }
+//
+//            AreaResponseDTO area = areaServiceCommunication.getAreaById(areaId);
+//            if (area == null || !area.getStatus()) {
+//                throw new CustomException("Area (ID: " + areaId + ") không tồn tại hoặc không hoạt động.");
+//            }
+//
+////            Chuyển đổi DTO sang Entity
+//            Tours tours = requestToEntity(tourRequestDTO);
+//
+//            // Nếu DayDetails có dữ liệu (dù không bắt buộc), cần thiết lập quan hệ
+//            if (tours.getDayDetails() != null) {
+//                for (DayDetails detail : tours.getDayDetails()) {
+//                    detail.setTour(tours); // thiết lập quan hệ cha-con
+//                    detail.setStatus(true); // Gán mặc định
+//                }
+//            }
+//
+//            Tours savedTour = tourRepository.save(tours);
+//
+//            // 4. ÁNH XẠ
+//            return mapEntityToResponseDTO(savedTour);
+//
+//        } catch (CustomException e) {
+//            throw e;
+//        } catch (Exception e) {
+//            // Sửa lại thông báo lỗi để phản ánh hành động thêm mới Tour
+//            throw new CustomException("Thêm Tour mới bị lỗi không xác định: " + e.getMessage());
+//        }
+//    }
 //    Thêm mới 1 Tour
     @Override
     public TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException {
@@ -59,6 +106,14 @@ public class TourServiceImpl implements ITourService {
 
             if (tourRequestDTO.getDescription() == null || tourRequestDTO.getDescription().isEmpty()) {
                 throw new CustomException("Mô tả Tour không được để trống!");
+            }
+
+            Set<String> imageUrls = tourRequestDTO.getImages();
+            if (imageUrls == null || imageUrls.isEmpty()) {
+                throw new CustomException("Danh sách hình ảnh không được để trống.");
+            }
+            if (imageUrls.stream().anyMatch(url -> url == null || url.trim().isEmpty())) {
+                throw new CustomException("URL hình ảnh không được rỗng.");
             }
 
             Long areaId = tourRequestDTO.getAreaId();
@@ -465,7 +520,7 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
             return "N/A";
         }
         // Sử dụng Locale Tiếng Việt để hiển thị tên thứ (EEEE) bằng tiếng Việt
-        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss EEEE", new Locale("vi", "VN"));
+        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss", new Locale("vi", "VN"));
         return formatter.format(date);
     }
 

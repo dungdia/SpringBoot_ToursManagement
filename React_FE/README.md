@@ -49,4 +49,7 @@ npm install @react-oauth/google jwt-decode
 <!-- Đăng nhập facebook cho các react18 trở lên -->
 npm install @greatsumini/react-facebook-login
 
+<!-- Để sử dụng format cho ngày và disable các người đã qua -->
+npm install dayjs
+
 

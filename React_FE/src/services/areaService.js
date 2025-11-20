@@ -1,10 +1,10 @@
 import baseURL from "@/api/instance";
 import { message } from "antd";
 
-// const getAllAreas = async () => {
-//    const response = await baseURL.get("/admin/areas/findAll");
-//    return response;
-// };
+const getAllAreasNotFilter = async () => {
+   const response = await baseURL.get("/admin/areas/findAll");
+   return response;
+};
 
 const getAllAreas = async (
    search,
@@ -27,6 +27,11 @@ const createArea = async (values) => {
    return response;
 };
 
+const updateArea = async (id, values) => {
+   const response = await baseURL.put(`/admin/areas/${id}`, values);
+   return response;
+};
+
 const removeArea = async (id) => {
    const response = await baseURL.delete(`/admin/areas/${id}`);
    return response;
@@ -37,4 +42,11 @@ const unblockStatus = async (id) => {
    return response;
 };
 
-export { getAllAreas, createArea, removeArea, unblockStatus };
+export {
+   getAllAreasNotFilter,
+   getAllAreas,
+   createArea,
+   updateArea,
+   removeArea,
+   unblockStatus,
+};
