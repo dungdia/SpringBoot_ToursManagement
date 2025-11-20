@@ -75,6 +75,7 @@ export default function AreaManager() {
          ),
       },
       {
+         with: 1500,
          title: "Chuyến đi",
          dataIndex: "isTour",
          key: "isTour",
@@ -177,7 +178,7 @@ export default function AreaManager() {
       fetchAreas();
    }, []);
 
-   // Hiển thị modal thêm
+   // Hiển thị modal thêm / cập nhật
    const handleShowModal = () => {
       setIsShowModal(true);
 
@@ -188,7 +189,7 @@ export default function AreaManager() {
       }, 100);
    };
 
-   // Ẩn modal thêm
+   // Ẩn modal thêm / cập nhật
    const handleCloseModal = () => {
       setIsShowModal(false);
       setBaseId(null);
