@@ -7,6 +7,7 @@ import com.ra.bookingservice.model.dto.resp.BookingResponseDTO;
 import com.ra.bookingservice.model.entity.Bookings;
 import com.ra.bookingservice.security.annotation.RequireRole;
 import com.ra.bookingservice.service.IBookingService;
+import com.ra.bookingservice.service.IBookingToTourService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,7 @@ import java.net.URI;
 @RequiredArgsConstructor
 public class ABookingController {
     private final IBookingService bookingService;
+    private final IBookingToTourService bookingToTourService;
 
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
     @GetMapping
@@ -90,4 +92,15 @@ public class ABookingController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
+
+//    ===============================
+//         Booking liên quan đến Tour
+//    ===============================
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/tours/{tourId}/check")
+    public ResponseEntity<?> checkIfTourIsUsed(@PathVariable Long tourId) throws CustomException {
+        Boolean isUsed = bookingToTourService.checkIfTourIsUsed(tourId);
+        return ResponseEntity.ok().body(isUsed);
+    }
+
 }

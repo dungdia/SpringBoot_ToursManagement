@@ -2,7 +2,7 @@ import baseURL from "@/api/instance";
 import { message } from "antd";
 
 const getAllAreasNotFilter = async () => {
-   const response = await baseURL.get("/admin/areas/findAll");
+   const response = await baseURL.get("/admin/areas/findAllNotFilter");
    return response;
 };
 

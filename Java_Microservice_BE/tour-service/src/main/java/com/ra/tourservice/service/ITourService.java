@@ -4,14 +4,29 @@ import com.ra.tourservice.exception.CustomException;
 import com.ra.tourservice.model.dto.req.TourRequestDTO;
 import com.ra.tourservice.model.dto.req.UpdateTourRequestDTO;
 import com.ra.tourservice.model.dto.resp.DayDetailResponseDTO;
+import com.ra.tourservice.model.dto.resp.TourBookingResponseDTO;
 import com.ra.tourservice.model.dto.resp.TourResponseDTO;
 import com.ra.tourservice.model.entity.DayDetails;
+import com.ra.tourservice.model.entity.Images;
 import com.ra.tourservice.model.entity.Tours;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.util.Date;
 import java.util.List;
 
 public interface ITourService {
-    List<TourResponseDTO> findAll();
+    List<TourBookingResponseDTO> findAll();
+    // Trong Tour-service: ITourService.java
+
+    Page<TourBookingResponseDTO> findAllWithFilters(
+            String search,
+            Long areaId,
+            Pageable pageable
+    );
+
+    List<Images> findAllImageUrlsByTourId(Long tourId) throws CustomException;
+
 //    Thêm mới 1 Tour
     TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException;
     Tours findById(Long tourId) throws CustomException;
@@ -38,4 +53,5 @@ public interface ITourService {
 
 //    Trừ số lượng slots trong DayDetails
     void deductSlots(Long dayDetailId, Long slots) throws CustomException;
+
 }

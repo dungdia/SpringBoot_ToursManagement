@@ -75,7 +75,6 @@ export default function AreaManager() {
          ),
       },
       {
-         with: 1500,
          title: "Chuyến đi",
          dataIndex: "isTour",
          key: "isTour",
