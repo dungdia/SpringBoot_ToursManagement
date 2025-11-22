@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 public class TourInfoBasicResponseDTO {
+    private Long id;
     private String tourName;
     private AreaResponseDTO area; // Chứa thông tin về khu vực
     private String description;

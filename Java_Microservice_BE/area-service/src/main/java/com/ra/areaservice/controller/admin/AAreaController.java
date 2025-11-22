@@ -36,12 +36,12 @@ public class AAreaController {
     }
 
     // API lấy toàn bộ khu vực không phân trang
-//    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
-//    @GetMapping("/findAll")
-//    public ResponseEntity<List<AreaResponseDTO>> getAllAreas() {
-//        List<AreaResponseDTO> areas = areaService.findAll();
-//        return ResponseEntity.ok(areas);
-//    }
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/findAllNotFilter")
+    public ResponseEntity<List<AreaResponseDTO>> getAllAreas() {
+        List<AreaResponseDTO> areas = areaService.findAll();
+        return ResponseEntity.ok(areas);
+    }
 
     // API lấy toàn bộ khu vực có phân trang
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})

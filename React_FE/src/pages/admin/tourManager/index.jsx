@@ -1,5 +1,13 @@
 import { getAllAreasNotFilter } from "@/services/areaService";
-import { createTour, getAllToursNotFilter } from "@/services/tourService";
+import {
+   createImagesForTour,
+   createTour,
+   getAllImagesUrlsByTourId,
+   getAllTours,
+   getAllToursNotFilter,
+   removeImageByTourIdAndImageId,
+   updateImagesForTour,
+} from "@/services/tourService";
 import {
    vietnameseCurrencyFormatter,
    vietnameseCurrencyParser,
@@ -9,6 +17,7 @@ import {
    Button,
    DatePicker,
    Form,
+   Image,
    Input,
    InputNumber,
    message,
@@ -19,9 +28,10 @@ import {
    Table,
 } from "antd";
 import { HttpStatusCode } from "axios";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import "./tourManager.css";
 import dayjs from "dayjs";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function TourManager() {
    // Formatter cho ngày
@@ -32,7 +42,11 @@ export default function TourManager() {
       return current && current < dayjs().startOf("day");
    };
 
-   // Cho form thêm / cập nhật khu vực
+   // baseId
+   const [baseId, setBaseId] = useState(null);
+
+   // Giao diện tour =======================================================================================================
+   // Cho form thêm / cập nhật tour
    const tourNameRef = useRef();
    const [formAddOrUpdateTour] = Form.useForm();
    const [isTourLoading, setIsTourLoading] = useState(false);
@@ -40,6 +54,47 @@ export default function TourManager() {
    const [areas, setAreas] = useState([]);
    const [isShowModal, setIsShowModal] = useState(false);
    const [isloading, setIsLoading] = useState(false);
+   const [valueImageAddTour, setValueImageAddTour] = useState([""]);
+   const debounceValueImageAddTour = useDebounce(valueImageAddTour, 800);
+   // Theo dõi giá trị của trường 'images' (là một mảng)
+   const formImageUrlsForTour = Form.useWatch("images", formAddOrUpdateTour);
+
+   // Phân trang
+   const [totalElements, setTotalElements] = useState(0);
+   const [searchValue, setSearchValue] = useState("");
+   const [currentPage, setCurrentPage] = useState(0);
+   const [pageSize, setPageSize] = useState(8);
+   const [checkAreaId, setCheckAreaId] = useState("all");
+
+   // Giao diện xem hình ảnh ================================================================================================
+   const [isShowImagesURLsModal, setIsShowImagesURLsModal] = useState(false);
+   const [imagesURLs, setImagesURLs] = useState([]);
+   const [isImageLoading, setIsImageLoading] = useState(false);
+
+   // Cho form thêm
+   const [formAddImages] = Form.useForm();
+   const [isShowAddImageModal, setIsShowAddImageModal] = useState(false);
+   const [isAddImageLoading, setIsAddImageLoading] = useState(false);
+   const [valueImageAddImage, setValueImageAddImage] = useState([""]);
+   const debounceValueImageAddImage = useDebounce(valueImageAddImage, 800);
+   // Theo dõi giá trị của trường 'images' (là một mảng)
+   const formImageUrlsForImage = Form.useWatch("images", formAddImages);
+
+   // Cho form câp nhật ảnh
+   const updateImage = useRef();
+   const [formUpdateImage] = Form.useForm();
+   const [isShowUpdateImageModal, setIsShowUpdateImageModal] = useState(false);
+   const [isUpdateImageLoading, setIsUpdateImageLoading] = useState(false);
+   const [valueImageUpdateImage, setValueImageUpdateImage] = useState("");
+   const debounceValueImageUpdateImage = useDebounce(
+      valueImageUpdateImage,
+      800
+   );
+
+   // Modal xóa hình ảnh
+   const [baseImageId, setBaseImageId] = useState(null);
+   const [isShowImageModalDelete, setIsShowImageModalDelete] = useState(false);
+   const [isDeleteImageLoading, setIsDeleteImageLoading] = useState(false);
 
    const columns = [
       {
@@ -73,11 +128,28 @@ export default function TourManager() {
          ),
       },
       {
+         title: "Đơn đặt",
+         dataIndex: "isBooking",
+         key: "isBooking",
+         render: (_, tour) => (
+            <p
+               className={
+                  tour.isBooking
+                     ? "font-semibold text-[#ff8904]"
+                     : "font-semibold text-[#722ed1]"
+               }
+            >
+               {tour.isBooking ? "Đã đặt" : "Chưa đặt"}
+            </p>
+         ),
+      },
+      {
          title: "Hình ảnh",
          key: "action-image",
          dataIndex: "action-image",
-         render: () => (
+         render: (_, tour) => (
             <Button
+               onClick={() => handleShowImagesURLs(tour.id)}
                size="large"
                type="default"
                style={{
@@ -139,6 +211,7 @@ export default function TourManager() {
          id: tour.id,
          key: tour.id,
          tourName: tour.tourName,
+         isBooking: tour.isBooking,
          areaId: tour.area.id,
          areaName: tour.area.areaName,
          area: tour.area,
@@ -146,20 +219,55 @@ export default function TourManager() {
       };
    });
 
-   const fetchTours = async () => {
+   // Đồng bộ Form Value vào state React (để phục vụ debounceValueImageAddTour)
+   useEffect(() => {
+      // Chỉ cập nhật state nếu formImageUrls tồn tại và là mảng
+      if (Array.isArray(formImageUrlsForTour)) {
+         // Form.List trả về mảng giá trị (string)
+         setValueImageAddTour(formImageUrlsForTour);
+      }
+   }, [formImageUrlsForTour]);
+
+   // Đồng bộ Form Value vào state React (để phục vụ debounceValueImageAddImage)
+   useEffect(() => {
+      // Chỉ cập nhật state nếu formImageUrls tồn tại và là mảng
+      if (Array.isArray(formImageUrlsForImage)) {
+         // Form.List trả về mảng giá trị (string)
+         setValueImageAddImage(formImageUrlsForImage);
+      }
+   }, [formImageUrlsForImage]);
+
+   // Mong muốn khi sử dụng custome hook useDebounce (delay khi search)
+   const debounceSearch = useDebounce(searchValue, 800);
+
+   const fetchTours = useCallback(async () => {
       setIsTourLoading(true);
-      const response = await getAllToursNotFilter();
-      setTours(response.data);
-   };
+
+      const pageIndex = currentPage - 1;
+
+      const areaId = checkAreaId === "all" ? null : checkAreaId;
+
+      const response = await getAllTours(
+         debounceSearch,
+         pageIndex,
+         pageSize,
+         areaId
+      );
+      setTours(response.content);
+
+      setTotalElements(response.totalElements);
+      setIsTourLoading(false);
+   }, [debounceSearch, currentPage, pageSize, checkAreaId]);
 
    const fetchAreas = async () => {
       const response = await getAllAreasNotFilter();
-      setAreas(response.data.content);
+
+      setAreas(response.data);
    };
 
    useEffect(() => {
-      fetchTours();
       fetchAreas();
+      fetchTours();
    }, []);
 
    // Hiển thị modal thêm
@@ -176,8 +284,8 @@ export default function TourManager() {
    // Ẩn modal thêm
    const handleCloseModal = () => {
       setIsShowModal(false);
-      // setBaseId(null);
       formAddOrUpdateTour.resetFields();
+      setValueImageAddTour([""]);
    };
 
    // Hàm xác nhận thêm / cập nhật khu vực
@@ -230,8 +338,542 @@ export default function TourManager() {
       }
    };
 
+   // Theo dõi các bộ lọc và trang để tự động gọi API khi chúng thay đổi
+   useEffect(() => {
+      // Sẽ lấy dữ liệu người dùng khi các tham số lọc thay đổi
+      fetchTours();
+   }, [fetchTours]);
+
+   // Hàm chuyển trang
+   const handleChangePage = (currentPage, pageSize) => {
+      // Cập nhật lại trang hiện tại
+      setCurrentPage(currentPage);
+
+      // cập nhật số lượng bảng ghi / trang
+      setPageSize(pageSize);
+   };
+
+   // =====================================================================================================================
+   // GIAO DIỆN XEM HÌNH ẢNH
+   // =====================================================================================================================
+
+   const handleShowImagesURLs = async (tourId) => {
+      setBaseId(tourId);
+      setIsShowImagesURLsModal(true);
+      fetchImagesURLs(tourId);
+   };
+
+   const handleCloseImagesURLsModal = () => {
+      setIsShowImagesURLsModal(false);
+      setImagesURLs([]);
+      setBaseId(null);
+   };
+
+   const fetchImagesURLs = async (tourId) => {
+      setIsImageLoading(true);
+      try {
+         const response = await getAllImagesUrlsByTourId(tourId);
+         setImagesURLs(response.data);
+      } catch (error) {
+         if (error.response?.status === HttpStatusCode.BadRequest) {
+            message.error(error.response.data);
+         } else {
+            message.error("Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau!");
+         }
+      } finally {
+         setIsImageLoading(false);
+      }
+   };
+
+   const columnsImage = [
+      {
+         title: "Hình ảnh",
+         dataIndex: "url",
+         key: "url",
+         render: (_, image) => (
+            <Image
+               style={{
+                  objectFit: "cover", // Giữ tỉ lệ ảnh và không bị cắt bớt
+               }}
+               height={100}
+               width={100}
+               src={image.url}
+            />
+         ),
+      },
+      {
+         title: "Urls hình ảnh",
+         key: "url",
+         render: (_, image) => (
+            <p title={image.url} className="format">
+               {image.url}
+            </p>
+         ),
+      },
+      {
+         title: "Action",
+         key: "action",
+         render: (_, image) => (
+            <div className="flex gap-2 items-center">
+               <Button
+                  onClick={() => handleShowModalDeleteImage(image.id)}
+                  size="large"
+                  type="primary"
+                  danger
+                  ghost
+               >
+                  Xóa
+               </Button>
+               <Button
+                  onClick={() => handleShowUpdateImageModal(image)}
+                  size="large"
+                  type="primary"
+                  ghost
+               >
+                  Sửa
+               </Button>
+            </div>
+         ),
+      },
+   ];
+
+   const dataImage = imagesURLs?.map((image) => {
+      return {
+         id: image.id,
+         key: image.id,
+         url: image.url,
+      };
+   });
+
+   // Mở modal thêm hình ảnh
+   const handleShowAddImageModal = () => {
+      setIsShowAddImageModal(true);
+   };
+
+   // Ẩn modal thêm hình ảnh
+   const handleCloseAddImageModal = () => {
+      setIsShowAddImageModal(false);
+      formAddImages.resetFields();
+      setValueImageAddImage([""]);
+   };
+
+   // Xác nhận thêm hình ảnh
+   const onFinishAddImages = async (values) => {
+      try {
+         setIsAddImageLoading(true);
+         const response = await createImagesForTour(baseId, values);
+         console.log("response: ", response);
+         if (response.status === 200) {
+            message.success("Thêm hình ảnh thành công!");
+         } else {
+            message.error("Thêm hình ảnh thất bại, vui lòng thử lại!");
+            return;
+         }
+         fetchImagesURLs(baseId);
+         handleCloseAddImageModal();
+      } catch (error) {
+         console.log("error: ", error);
+
+         if (error.response?.status === HttpStatusCode.BadRequest) {
+            message.error(error.response.data);
+         } else {
+            message.error("Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau!");
+         }
+      } finally {
+         setIsAddImageLoading(false);
+      }
+   };
+
+   // Mở modal cập nhật hình ảnh
+   const handleShowUpdateImageModal = (image) => {
+      setIsShowUpdateImageModal(true);
+      setBaseImageId(image.id);
+      setValueImageUpdateImage(image.url);
+      formUpdateImage.setFieldsValue({
+         image: image.url,
+      });
+      setTimeout(() => {
+         if (updateImage.current) {
+            updateImage.current.focus();
+         }
+      }, 100);
+   };
+
+   // Ẩn modal cập nhật hình ảnh
+   const handleCloseUpdateImageModal = () => {
+      setIsShowUpdateImageModal(false);
+      setBaseImageId(null);
+      setValueImageUpdateImage("");
+      formUpdateImage.resetFields();
+   };
+
+   // Xác nhận cập nhật hình ảnh
+   const onFinishUpdateImage = async (values) => {
+      try {
+         setIsUpdateImageLoading(true);
+         const response = await updateImagesForTour(
+            baseId,
+            baseImageId,
+            values
+         );
+         console.log("response: ", response);
+         if (response.status === 200) {
+            message.success("Cập nhật hình ảnh thành công!");
+         } else {
+            message.error("Cập nhật hình ảnh thất bại, vui lòng thử lại!");
+            return;
+         }
+         fetchImagesURLs(baseId);
+         handleCloseUpdateImageModal();
+      } catch (error) {
+         console.log("error: ", error);
+         if (error.response?.status === HttpStatusCode.BadRequest) {
+            message.error(error.response.data);
+         } else {
+            message.error("Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau!");
+         }
+      } finally {
+         setIsUpdateImageLoading(false);
+      }
+   };
+
+   // Mở modal xóa hình ảnh
+   const handleShowModalDeleteImage = (imageId) => {
+      setIsShowImageModalDelete(true);
+      setBaseImageId(imageId);
+   };
+
+   // Ẩn modal xóa hình ảnh
+   const handleCloseModalDeleteImage = () => {
+      setIsShowImageModalDelete(false);
+      setBaseImageId(null);
+   };
+
+   const handleConfirmDeleteImage = async () => {
+      try {
+         setIsDeleteImageLoading(true);
+         // Gọi API xóa hình ảnh
+         const response = await removeImageByTourIdAndImageId(
+            baseId,
+            baseImageId
+         );
+
+         console.log("response: ", response);
+
+         if (response.status === 200) {
+            message.success("Xóa hình ảnh thành công!");
+         } else {
+            message.error("Xóa hình ảnh thất bại, vui lòng thử lại!");
+            return;
+         }
+
+         // Cập nhật lại danh sách hình ảnh sau khi xóa
+         fetchImagesURLs(baseId);
+         handleCloseModalDeleteImage();
+      } catch (error) {
+         console.log("error: ", error);
+
+         if (error.response?.status === HttpStatusCode.BadRequest) {
+            message.error(error.response.data);
+         } else {
+            message.error("Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau!");
+         }
+      } finally {
+         setIsDeleteImageLoading(false);
+      }
+   };
+
+   // Lấy ra hình ảnh hiện tại qua baseImageId
+   const currentImage = imagesURLs?.find((image) => image.id === baseImageId);
+
+   // lấy ra tour hiện tại qua baseId
+   const currentTour = tours?.find((tour) => tour.id === baseId);
+
    return (
       <>
+         {/* ==================================================================================================================== */}
+         {/* GIAO DIỆN CỦA HÌNH ẢNH */}
+         {/* ==================================================================================================================== */}
+
+         {/* Giao diện xem hình ảnh */}
+         <Modal
+            onCancel={handleCloseImagesURLsModal}
+            title={
+               <div className="flex items-center gap-2">
+                  <p>Hình ảnh của</p>
+                  <p className="text-[#efb748]">{currentTour?.tourName}</p>
+               </div>
+            }
+            width={1500}
+            open={isShowImagesURLsModal}
+            footer={false}
+         >
+            <div className="flex justify-end mb-4">
+               <Button
+                  onClick={handleShowAddImageModal}
+                  type="primary"
+                  size="large"
+               >
+                  Thêm hình ảnh
+               </Button>
+            </div>
+            <Table
+               loading={isImageLoading}
+               columns={columnsImage}
+               dataSource={dataImage}
+            />
+         </Modal>
+
+         {/* Giao diện thêm hình ảnh */}
+         <Modal
+            title="Thêm ảnh"
+            onCancel={handleCloseAddImageModal}
+            open={isShowAddImageModal}
+            footer={false}
+         >
+            <Form
+               form={formAddImages}
+               name="add-or-update-images"
+               layout="vertical"
+               style={{ maxWidth: 600 }}
+               onFinish={onFinishAddImages}
+               autoComplete="off"
+               requiredMark={false}
+            >
+               {/* Hình ảnh */}
+               <Form.List
+                  name="images"
+                  rules={[
+                     {
+                        // Đảm bảo ít nhất một hình ảnh được nhập
+                        validator: async (_, images) => {
+                           if (!images || images.length === 0) {
+                              return message.error(
+                                 "Vui lòng thêm ít nhất một hình ảnh!"
+                              );
+                           }
+                           return Promise.resolve();
+                        },
+                     },
+                  ]}
+               >
+                  {(fields, { add, remove }) => (
+                     <>
+                        <label
+                           style={{ display: "block", marginBottom: "8px" }}
+                        >
+                           Hình ảnh (URLs)
+                        </label>
+
+                        {fields.map((field, index) => {
+                           // Tách key ra, giữ lại các thuộc tính còn lại
+                           const { key, ...restField } = field;
+                           console.log(fields);
+
+                           return (
+                              <Space
+                                 key={key} // KEY đúng chỗ
+                                 style={{ display: "flex", marginBottom: 8 }}
+                                 align="start"
+                              >
+                                 <div
+                                    className="flex items-center justify-center gap-4 p-3 border rounded-md shadow-sm"
+                                    style={{ flexGrow: 1 }}
+                                 >
+                                    <Form.Item
+                                       {...restField}
+                                       rules={[
+                                          {
+                                             required: true,
+                                             message:
+                                                "URL hình ảnh không được trống",
+                                          },
+                                       ]}
+                                       style={{ flexGrow: 1, marginBottom: 0 }}
+                                    >
+                                       <Input
+                                          className="w-full"
+                                          placeholder={`URL hình ảnh ${
+                                             index + 1
+                                          }`}
+                                       />
+                                    </Form.Item>
+
+                                    <Image
+                                       width={100}
+                                       height={100}
+                                       preview={false}
+                                       style={{ objectFit: "cover" }}
+                                       src={debounceValueImageAddImage[index]}
+                                    />
+                                 </div>
+
+                                 {/* Nút Xóa */}
+                                 <MinusCircleOutlined
+                                    onClick={() => remove(field.name)}
+                                    style={{
+                                       marginTop: "8px",
+                                       cursor: "pointer",
+                                    }}
+                                 />
+                              </Space>
+                           );
+                        })}
+
+                        {/* Nút thêm */}
+                        <Form.Item>
+                           <Button
+                              type="dashed"
+                              onClick={() => add()}
+                              block
+                              icon={<PlusOutlined />}
+                           >
+                              Thêm Hình ảnh
+                           </Button>
+                        </Form.Item>
+                     </>
+                  )}
+               </Form.List>
+
+               <Form.Item>
+                  <div className="flex items-center justify-end gap-3">
+                     <Button
+                        onClick={handleCloseImagesURLsModal}
+                        color="danger"
+                        variant="outlined"
+                        size="large"
+                        htmlType="button"
+                     >
+                        Hủy
+                     </Button>
+                     <Button
+                        loading={isAddImageLoading}
+                        color="primary"
+                        variant="outlined"
+                        size="large"
+                        htmlType="submit"
+                     >
+                        {/* {baseId ? "Cập nhật" : "Thêm"} */}
+                        {"Thêm"}
+                     </Button>
+                  </div>
+               </Form.Item>
+            </Form>
+         </Modal>
+
+         {/* Giao diện cập hình ảnh */}
+         <Modal
+            title="Cập nhật hình ảnh"
+            onCancel={handleCloseUpdateImageModal}
+            open={isShowUpdateImageModal}
+            footer={false}
+         >
+            <Form
+               form={formUpdateImage}
+               name="update-images"
+               layout="vertical"
+               style={{ maxWidth: 600 }}
+               onFinish={onFinishUpdateImage}
+               autoComplete="off"
+               requiredMark={false}
+            >
+               <div className="flex items-center justify-between gap-4 mt-5">
+                  <Form.Item
+                     name="image"
+                     rules={[
+                        {
+                           required: true,
+                           message: "URL hình ảnh không được trống",
+                        },
+                     ]}
+                  >
+                     <Input
+                        onChange={(e) =>
+                           setValueImageUpdateImage(e.target.value)
+                        }
+                        ref={updateImage}
+                        className="w-full"
+                        placeholder={`URL hình ảnh`}
+                     />
+                  </Form.Item>
+                  <Form.Item>
+                     <Image
+                        style={{ objectFit: "cover" }}
+                        height={200}
+                        width={200}
+                        preview={false}
+                        src={debounceValueImageUpdateImage}
+                     />
+                  </Form.Item>
+               </div>
+               <Form.Item>
+                  <div className="flex items-center justify-end gap-3">
+                     <Button
+                        onClick={handleCloseUpdateImageModal}
+                        color="danger"
+                        variant="outlined"
+                        size="large"
+                        htmlType="button"
+                     >
+                        Hủy
+                     </Button>
+                     <Button
+                        // loading={isAddImageLoading}
+                        color="primary"
+                        variant="outlined"
+                        size="large"
+                        htmlType="submit"
+                     >
+                        Cập nhật
+                     </Button>
+                  </div>
+               </Form.Item>
+            </Form>
+         </Modal>
+
+         {/* Giao diện xóa hình ảnh */}
+         <Modal
+            title="Xóa hình ảnh"
+            open={isShowImageModalDelete}
+            onCancel={handleCloseModalDeleteImage}
+            footer={
+               <div className="flex justify-end items-center gap-2">
+                  <Button
+                     onClick={handleCloseModalDeleteImage}
+                     size="large"
+                     type="primary"
+                     ghost
+                  >
+                     Hủy
+                  </Button>
+                  <Button
+                     onClick={handleConfirmDeleteImage}
+                     loading={isDeleteImageLoading}
+                     size="large"
+                     type="primary"
+                     danger
+                     ghost
+                  >
+                     Xóa
+                  </Button>
+               </div>
+            }
+         >
+            <Image
+               style={{
+                  objectFit: "cover",
+               }}
+               preview={false}
+               width={200}
+               height={200}
+               src={currentImage?.url}
+            />
+         </Modal>
+
+         {/* ==================================================================================================================== */}
+         {/* GIAO DIỆN CỦA TOUR */}
+         {/* ==================================================================================================================== */}
+
          {/* Giao diện thêm / cập nhật khu vực */}
          <Modal
             footer={false}
@@ -290,11 +932,7 @@ export default function TourManager() {
                      {
                         // Đảm bảo ít nhất một hình ảnh được nhập
                         validator: async (_, images) => {
-                           if (
-                              !images ||
-                              images.length === 0 ||
-                              images.every((img) => !img)
-                           ) {
+                           if (!images || images.length === 0) {
                               return message.error(
                                  "Vui lòng thêm ít nhất một hình ảnh!"
                               );
@@ -311,36 +949,61 @@ export default function TourManager() {
                         >
                            Hình ảnh (URLs)
                         </label>
-                        {/* Lặp qua các trường hiện có */}
-                        {fields.map((field, index) => (
-                           <Space
-                              key={field.key} // KEY luôn ở phần tử ngoài cùng (Space)
-                              style={{ display: "flex", marginBottom: 8 }}
-                              align="baseline"
-                           >
-                              {/* Input cho từng URL hình ảnh */}
-                              <Form.Item
-                                 // ⭐ SỬA: BỎ {...field} để loại bỏ lỗi spread key ⭐
-                                 name={[field.name]} // Chỉ truyền name và các props khác
-                                 rules={[
-                                    {
-                                       required: true,
-                                       message: "URL hình ảnh không được trống",
-                                    },
-                                 ]}
-                                 style={{ flexGrow: 1, marginBottom: 0 }}
-                              >
-                                 <Input
-                                    placeholder={`URL hình ảnh ${index + 1}`}
-                                 />
-                              </Form.Item>
 
-                              {/* Nút xóa */}
-                              <MinusCircleOutlined
-                                 onClick={() => remove(field.name)}
-                              />
-                           </Space>
-                        ))}
+                        {fields.map((field, index) => {
+                           // Tách key ra, giữ lại các thuộc tính còn lại
+                           const { key, ...restField } = field;
+                           console.log(fields);
+
+                           return (
+                              <Space
+                                 key={key} // KEY đúng chỗ
+                                 style={{ display: "flex", marginBottom: 8 }}
+                                 align="start"
+                              >
+                                 <div
+                                    className="flex items-center justify-center gap-4 p-3 border rounded-md shadow-sm"
+                                    style={{ flexGrow: 1 }}
+                                 >
+                                    <Form.Item
+                                       {...restField}
+                                       rules={[
+                                          {
+                                             required: true,
+                                             message:
+                                                "URL hình ảnh không được trống",
+                                          },
+                                       ]}
+                                       style={{ flexGrow: 1, marginBottom: 0 }}
+                                    >
+                                       <Input
+                                          className="w-full"
+                                          placeholder={`URL hình ảnh ${
+                                             index + 1
+                                          }`}
+                                       />
+                                    </Form.Item>
+
+                                    <Image
+                                       width={100}
+                                       height={100}
+                                       preview={false}
+                                       style={{ objectFit: "cover" }}
+                                       src={debounceValueImageAddTour[index]}
+                                    />
+                                 </div>
+
+                                 {/* Nút Xóa */}
+                                 <MinusCircleOutlined
+                                    onClick={() => remove(field.name)}
+                                    style={{
+                                       marginTop: "8px",
+                                       cursor: "pointer",
+                                    }}
+                                 />
+                              </Space>
+                           );
+                        })}
 
                         {/* Nút thêm */}
                         <Form.Item>
@@ -531,9 +1194,6 @@ export default function TourManager() {
                               <MinusCircleOutlined
                                  onClick={() => {
                                     remove(name);
-                                    formAddOrUpdateTour.validateFields([
-                                       "dayDetails",
-                                    ]);
                                  }}
                                  style={{
                                     alignSelf: "flex-end",
@@ -611,50 +1271,73 @@ export default function TourManager() {
             className="flex gap-5 items-center justify-start mb-3"
          >
             <div className="flex gap-2 items-center">
-               <p>Trạng thái</p>
+               <p>Khu vực</p>
                <Select
                   defaultValue="all"
+                  onChange={(value) => {
+                     setCheckAreaId(value); // Cập nhật trạng thái
+                     setCurrentPage(1); // RESET VỀ TRANG 1
+                  }} // Cập nhật thể loại
                   style={{ width: 160 }}
                   options={[
                      {
                         value: "all",
                         label: "Tất cả",
                      },
-                     {
-                        value: true,
-                        label: "Hoạt động",
-                     },
-                     {
-                        value: false,
-                        label: "Không hoạt động",
-                     },
+
+                     ...areas
+                        ?.filter((area) => area.status === true)
+                        .map((area) => ({
+                           value: area.id,
+                           label: area.areaName,
+                        })),
                   ]}
                />
             </div>
             <div>
                <Input.Search
-                  placeholder="Tìm kiếm khu vực"
+                  loading={isTourLoading}
+                  placeholder="Tìm kiếm chuyến đi"
                   className="w-[350px]"
                   allowClear
+                  value={searchValue}
+                  onChange={(e) => {
+                     setSearchValue(e.target.value);
+                     if (searchValue != null) setCurrentPage(1);
+                  }}
                />
             </div>
          </div>
 
          {/* Giao diện bảng dữ liệu chuyến đi */}
          <div className="mb-4">
-            <Table columns={columns} dataSource={data} pagination={false} />
+            <Table
+               loading={isTourLoading}
+               columns={columns}
+               dataSource={data}
+               pagination={false}
+            />
          </div>
 
          {/* Giao diện phân trang */}
          <div className="flex justify-end">
-            <Pagination
-               total={85}
-               showTotal={(total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`
-               }
-               defaultPageSize={20}
-               defaultCurrent={1}
-            />
+            {totalElements <= 8 ? (
+               ""
+            ) : (
+               <div className="page">
+                  <Pagination
+                     showSizeChanger
+                     total={totalElements}
+                     showTotal={(total, range) =>
+                        `${range[0]}-${range[1]} of ${total} items`
+                     }
+                     onChange={handleChangePage}
+                     defaultPageSize={pageSize}
+                     current={currentPage}
+                     pageSizeOptions={[8, 16, 32, 50, 100]}
+                  />
+               </div>
+            )}
          </div>
       </>
    );

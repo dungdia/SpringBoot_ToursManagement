@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class SlotToDayDetailServiceCommunicationImpl implements ISlotToDayDetailServiceCommunication {
@@ -22,6 +24,8 @@ public class SlotToDayDetailServiceCommunicationImpl implements ISlotToDayDetail
             throw new CustomException("Lỗi khi gọi Day-Detail trong Tour Service: " + ex.getMessage());
         }
     }
+
+
 
     @Override
     public void deductSlot(Long dayDetailId, Long quantity) throws CustomException {

@@ -3,18 +3,28 @@ package com.ra.tourservice.controller.admin;
 import com.ra.tourservice.exception.CustomException;
 import com.ra.tourservice.model.dto.req.TourRequestDTO;
 import com.ra.tourservice.model.dto.req.UpdateTourRequestDTO;
+import com.ra.tourservice.model.dto.resp.TourBookingResponseDTO;
 import com.ra.tourservice.model.dto.resp.TourResponseDTO;
+import com.ra.tourservice.model.entity.Images;
 import com.ra.tourservice.model.entity.Tours;
 import com.ra.tourservice.security.annotation.RequireRole;
 import com.ra.tourservice.service.ITourService;
 import com.ra.tourservice.service.ITourToAreaService;
+import com.ra.tourservice.service.ITourToBookingService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.Date;
 import java.util.List;
 
 @RestController
@@ -23,6 +33,7 @@ import java.util.List;
 public class ATourController {
     private final ITourService tourService;
     private final ITourToAreaService tourToAreaService;
+    private final ITourToBookingService tourToBookingService;
 
     @GetMapping("/test")
     public String test(HttpServletRequest request) {
@@ -32,11 +43,50 @@ public class ATourController {
         return "Request từ user: " + email + " | Roles: " + roles;
     }
 
+//    API lấy toàn bộ tour không phân trang
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/findAllNoFilter")
+    public ResponseEntity<List<TourBookingResponseDTO>> getAllTours() {
+        List<TourBookingResponseDTO> tours = tourService.findAll();
+        return ResponseEntity.ok(tours);
+    }
+
+//    API lấy tour có phân trang với filter
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
     @GetMapping("/findAll")
-    public ResponseEntity<List<TourResponseDTO>> getAllTours() {
-        List<TourResponseDTO> tours = tourService.findAll();
-        return ResponseEntity.ok(tours);
+    public ResponseEntity<?> getAllTours(
+            @PageableDefault(page = 0,size = 8,sort = "id",direction = Sort.Direction.ASC) Pageable pageable,
+            @RequestParam(defaultValue = "") String search,
+            @RequestParam(required = false) Long areaId // Lọc theo Area ID
+
+    ) {
+        Page<TourBookingResponseDTO> tours = tourService.findAllWithFilters(
+                search,
+                areaId,
+                pageable
+        );
+        return ResponseEntity.ok().body(tours);
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("findAllImagesURLs/{tourId}")
+    public ResponseEntity<?> getAllTourImagesURLs(@PathVariable Long tourId){
+        try {
+            List<Images> imageURLs = tourService.findAllImageUrlsByTourId(tourId);
+            return ResponseEntity.ok().body(imageURLs);
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("findAllDayDetails/{tourId}")
+    public ResponseEntity<?> getAllDayDetailsByTourId(@PathVariable Long tourId){
+        try {
+            return ResponseEntity.ok().body(tourService.findDayDetailByTourId(tourId));
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
     }
 
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
@@ -212,5 +262,15 @@ public class ATourController {
         }catch (CustomException ex){
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
+    }
+
+//    ===============================
+//         Tour liên quan đến Booking
+//    ===============================
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/{tourId}/dayDetailIds")
+    public ResponseEntity<?> GetDayDetailIdsByTourId(@PathVariable Long tourId){
+        List<Long> dayDetailIds = tourToBookingService.getDayDetailIdsByTourId(tourId);
+        return ResponseEntity.ok(dayDetailIds);
     }
 }

@@ -3,10 +3,7 @@ package com.ra.tourservice.service.impl;
 import com.ra.tourservice.exception.CustomException;
 import com.ra.tourservice.model.dto.req.TourRequestDTO;
 import com.ra.tourservice.model.dto.req.UpdateTourRequestDTO;
-import com.ra.tourservice.model.dto.resp.AreaResponseDTO;
-import com.ra.tourservice.model.dto.resp.DayDetailResponseDTO;
-import com.ra.tourservice.model.dto.resp.TourInfoBasicResponseDTO;
-import com.ra.tourservice.model.dto.resp.TourResponseDTO;
+import com.ra.tourservice.model.dto.resp.*;
 import com.ra.tourservice.model.entity.DayDetails;
 import com.ra.tourservice.model.entity.Images;
 import com.ra.tourservice.model.entity.Tours;
@@ -15,7 +12,10 @@ import com.ra.tourservice.repository.IImageRepository;
 import com.ra.tourservice.repository.ITourRepository;
 import com.ra.tourservice.service.IAreaServiceCommunication;
 import com.ra.tourservice.service.ITourService;
+import com.ra.tourservice.service.ITourToBookingServiceCommunication;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
@@ -30,16 +30,18 @@ public class TourServiceImpl implements ITourService {
     private final IImageRepository imageRepository;
 //    Gọi qua service Area
     private final IAreaServiceCommunication areaServiceCommunication;
+//    Gọi qua service Booking
+    private final ITourToBookingServiceCommunication tourToBookingServiceCommunication;
 
     @Override
-    public List<TourResponseDTO> findAll() {
+    public List<TourBookingResponseDTO> findAll() {
 //       Lấy tất cả Tours
         List<Tours> tours = tourRepository.findAll();
-        List<TourResponseDTO> responseDTO = new ArrayList<>();
+        List<TourBookingResponseDTO> responseDTO = new ArrayList<>();
         for(Tours tour: tours){
             try {
                 // Ánh xạ từng Tours sang TourResponseDTO
-                TourResponseDTO tourResponseDTO = mapEntityToResponseDTO(tour);
+                TourBookingResponseDTO tourResponseDTO = mapEntityToTourBookingResponseDTO(tour);
                 responseDTO.add(tourResponseDTO);
             } catch (CustomException e) {
                 // Xử lý lỗi nếu cần, ví dụ: ghi log hoặc bỏ qua tour này
@@ -49,7 +51,36 @@ public class TourServiceImpl implements ITourService {
         return responseDTO;
     }
 
-//    Thêm mới 1 Tour không cần dayDetails và images
+    @Override
+    public Page<TourBookingResponseDTO> findAllWithFilters(
+            String search,
+            Long areaId,
+            Pageable pageable) {
+
+//        Lấy trang Tours với bộ lọc
+        Page<Tours> toursPage = tourRepository.findAllWithFilters(
+                search,
+                areaId,
+                pageable
+        );
+
+        return toursPage.map(tour -> {
+            try {
+                // Sử dụng phương thức ánh xạ đã có để chuyển đổi
+                return mapEntityToTourBookingResponseDTO(tour);
+            } catch (CustomException e) {
+                throw new RuntimeException("Lỗi khi ánh xạ hoặc giao tiếp Microservice cho Tour ID: " + tour.getId(), e);
+            }
+        });
+    }
+
+    @Override
+    public List<Images> findAllImageUrlsByTourId(Long tourId) throws CustomException {
+        Tours tour = findById(tourId);
+        return new ArrayList<>(tour.getImages());
+    }
+
+    //    Thêm mới 1 Tour không cần dayDetails và images
 //    @Override
 //    public TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException {
 //        try {
@@ -405,7 +436,6 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
         Tours tour = findById(tourId);
         Set<Images> existingImages = tour.getImages(); // Lấy tập hợp Images hiện tại
 
-        // Tìm hình ảnh cần cập nhật
         Images imageToUpdate = existingImages.stream()
                 .filter(img -> img.getId().equals(imageId))
                 .findFirst()
@@ -416,19 +446,23 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
 
         // Kiểm tra nếu URL mới khác với URL hiện tại
         if (newUrl != null && !newUrl.equals(imageToUpdate.getUrl())) {
-            // Kiểm tra trùng lặp URL trong cùng Tour
+
+            //  Đảm bảo URL mới không trùng với URL của bất kỳ hình ảnh nào KHÁC trong Tour.
             boolean isDuplicate = existingImages.stream()
+                    // Lọc BỎ hình ảnh đang được cập nhật (imageId)
+                    .filter(img -> !img.getId().equals(imageId))
+                    // Kiểm tra xem có URL trùng lặp nào không
                     .anyMatch(img -> img.getUrl().equals(newUrl));
 
             if (isDuplicate) {
-                throw new CustomException("URL hình ảnh mới đã tồn tại trong Tour này.");
+                // Nếu trùng lặp với hình ảnh KHÁC, ném ngoại lệ
+                throw new CustomException("URL hình ảnh mới đã tồn tại (trùng với một hình ảnh khác) trong Tour này.");
             }
 
-            // Cập nhật URL
+            //Cập nhật URL
             imageToUpdate.setUrl(newUrl);
         }
 
-        // Lưu Tour
         tourRepository.save(tour);
 
         return tour;
@@ -514,6 +548,8 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
         dayDetailRepository.save(dayDetail);
     }
 
+
+
     // Hàm định dạng ngày tháng theo yêu cầu
     private String formatDate(Date date) {
         if (date == null) {
@@ -555,6 +591,7 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
         AreaResponseDTO areaDetails = areaServiceCommunication.getAreaById(tour.getAreaId());
 
         TourInfoBasicResponseDTO tourInfo = TourInfoBasicResponseDTO.builder()
+                .id(tour.getId())
                 .tourName(tour.getTourName())
                 .description(tour.getDescription())
                 .area(areaDetails)
@@ -596,6 +633,22 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
                 .id(tour.getId())
                 .tourName(tour.getTourName())
                 .description(tour.getDescription())
+                .images(tour.getImages())
+                .dayDetails(tour.getDayDetails())
+                .area(areaDetails)
+                .build();
+    }
+
+    public TourBookingResponseDTO mapEntityToTourBookingResponseDTO(Tours tour) throws CustomException {
+        // Lấy chi tiết Area từ Microservice khác
+        AreaResponseDTO areaDetails = areaServiceCommunication.getAreaById(tour.getAreaId());
+        Boolean isUsed = tourToBookingServiceCommunication.checkIfTourIsUsedInBooking(tour.getId());
+        // Chuyển đổi và trả về
+        return TourBookingResponseDTO.builder()
+                .id(tour.getId())
+                .tourName(tour.getTourName())
+                .description(tour.getDescription())
+                .isBooking(isUsed)
                 .images(tour.getImages())
                 .dayDetails(tour.getDayDetails())
                 .area(areaDetails)
