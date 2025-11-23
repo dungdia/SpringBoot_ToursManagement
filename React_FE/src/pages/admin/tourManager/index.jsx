@@ -9,9 +9,11 @@ import {
    getAllTours,
    removeDayDetailByTourIdAndDayDetailId,
    removeImageByTourIdAndImageId,
+   removeTourById,
    unblockStatusDayDetail,
    updateDayDetailByTourIdAndDayDetailId,
    updateImagesForTour,
+   updateTour,
 } from "@/services/tourService";
 import {
    formatMoney,
@@ -94,6 +96,10 @@ export default function TourManager() {
    const [currentPage, setCurrentPage] = useState(0);
    const [pageSize, setPageSize] = useState(8);
    const [checkAreaId, setCheckAreaId] = useState("all");
+
+   // Modal xóa hình ảnh
+   const [isShowModalDelete, setIsShowModalDelete] = useState(false);
+   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
    // Giao diện xem hình ảnh ================================================================================================
    const [isShowImagesURLsModal, setIsShowImagesURLsModal] = useState(false);
@@ -268,7 +274,7 @@ export default function TourManager() {
                   {/* NÚT KHÓA / XÓA*/}
                   {
                      <Button
-                        // onClick={() => handleShowModalDelete(tour.id)}
+                        onClick={() => handleShowModalDelete(tour.id)}
                         size="large"
                         type="primary"
                         danger
@@ -280,7 +286,7 @@ export default function TourManager() {
                   {
                      <Button
                         size="large"
-                        // onClick={() => handleEditTour(tour)}
+                        onClick={() => handleEditTour(tour)}
                         type="primary"
                         ghost
                      >
@@ -375,6 +381,16 @@ export default function TourManager() {
       setValueImageAddTour([""]);
    };
 
+   const handleEditTour = (tour) => {
+      setIsShowModal(true);
+      setBaseId(tour.id);
+      formAddOrUpdateTour.setFieldsValue({
+         tourName: tour.tourName,
+         areaId: tour.areaId,
+         description: tour.description,
+      });
+   };
+
    // Hàm xác nhận thêm / cập nhật khu vực
    const onFinish = async (values) => {
       const processedValues = { ...values };
@@ -400,15 +416,31 @@ export default function TourManager() {
          );
       }
 
-      try {
-         // Gửi processedValues thay vì values gốc
-         const responseCreate = await createTour(processedValues);
+      console.log("processedValues: ", processedValues);
+      
 
-         if (responseCreate.status === 201) {
-            message.success("Thêm chuyến đi thành công!");
+      setIsLoading(true);
+      try {
+         if (baseId) {
+            // Cập nhật tour
+            // Gọi API cập nhật tour ở đây (chưa có hàm cập nhật trong service)
+            const responseUpdate = await updateTour(baseId, processedValues);
+            if (responseUpdate.status === 200) {
+               message.success("Cập nhật chuyến đi thành công!");
+            } else {
+               message.error("Cập nhật chuyến đi thất bại, vui lòng thử lại!");
+               return;
+            }
          } else {
-            message.error("Thêm chuyến đi thất bại, vui lòng thử lại!");
-            return;
+            // Gửi processedValues thay vì values gốc
+            const responseCreate = await createTour(processedValues);
+
+            if (responseCreate.status === 201) {
+               message.success("Thêm chuyến đi thành công!");
+            } else {
+               message.error("Thêm chuyến đi thất bại, vui lòng thử lại!");
+               return;
+            }
          }
          fetchTours();
          handleCloseModal();
@@ -425,6 +457,48 @@ export default function TourManager() {
       }
    };
 
+   // Mở modal xóa tour
+   const handleShowModalDelete = (tourId) => {
+      setIsShowModalDelete(true);
+      setBaseId(tourId);
+   };
+
+   // Ẩn modal xóa tour
+   const handleCloseModalDelete = () => {
+      setIsShowModalDelete(false);
+      setBaseId(null);
+   };
+
+   // Xác nhận xóa tour
+   const handleConfirmDelete = async () => {
+      try {
+         setIsDeleteLoading(true);
+         // Gọi API xóa tour
+         const response = await removeTourById(baseId);
+         console.log("response: ", response);
+         if (response.status === 200) {
+            message.success("Xóa chuyến đi thành công!");
+         } else {
+            message.error("Xóa chuyến đi thất bại, vui lòng thử lại!");
+            return;
+         }
+         // Cập nhật lại danh sách tour sau khi xóa
+         setCurrentPage(1);
+      } catch (error) {
+         console.log("error: ", error);
+         if (error.response?.status === HttpStatusCode.BadRequest) {
+            message.error(error.response.data);
+         } else {
+            message.error("Đã xảy ra lỗi máy chủ. Vui lòng thử lại sau!");
+         }
+      } finally {
+         setIsDeleteLoading(false);
+         // Cập nhật lại danh sách tour sau khi xóa
+         fetchTours();
+         handleCloseModalDelete();
+      }
+   };
+
    // Hàm chuyển trang
    const handleChangePage = (currentPage, pageSize) => {
       // Cập nhật lại trang hiện tại
@@ -433,6 +507,9 @@ export default function TourManager() {
       // cập nhật số lượng bảng ghi / trang
       setPageSize(pageSize);
    };
+
+   // lấy ra tour hiện tại qua baseId
+   const currentTour = tours?.find((tour) => tour.id === baseId);
 
    // =====================================================================================================================
    // GIAO DIỆN XEM HÌNH ẢNH
@@ -1237,9 +1314,6 @@ export default function TourManager() {
    const currentDayDetail = dayDetails?.find(
       (detail) => detail.id === baseDayDetailId
    );
-
-   // lấy ra tour hiện tại qua baseId
-   const currentTour = tours?.find((tour) => tour.id === baseId);
 
    return (
       <>
@@ -2357,11 +2431,21 @@ export default function TourManager() {
          {/* GIAO DIỆN CỦA TOUR */}
          {/* ==================================================================================================================== */}
 
-         {/* Giao diện thêm / cập nhật khu vực */}
+         {/* Giao diện thêm / cập nhật chuyến đi */}
          <Modal
             footer={false}
-            // title={baseId ? "Cập nhật khu vực" : "Thêm khu vực"}
-            title="Thêm chuyến đi"
+            title={
+               baseId ? (
+                  <span>
+                     Cập nhật khu vực{" "}
+                     <span className="format font-semibold text-blue-500">
+                        {currentTour?.tourName}
+                     </span>
+                  </span>
+               ) : (
+                  "Thêm khu vực"
+               )
+            }
             open={isShowModal}
             onCancel={handleCloseModal}
          >
@@ -2408,300 +2492,324 @@ export default function TourManager() {
                   />
                </Form.Item>
 
-               {/* Hình ảnh */}
-               <Form.List
-                  name="images"
-                  rules={[
-                     {
-                        // Đảm bảo ít nhất một hình ảnh được nhập
-                        validator: async (_, images) => {
-                           if (!images || images.length === 0) {
-                              return message.error(
-                                 "Vui lòng thêm ít nhất một hình ảnh!"
-                              );
-                           }
-                           return Promise.resolve();
-                        },
-                     },
-                  ]}
-               >
-                  {(fields, { add, remove }) => (
-                     <>
-                        <label
-                           style={{ display: "block", marginBottom: "8px" }}
-                        >
-                           Hình ảnh (URLs)
-                        </label>
-
-                        {fields.map((field, index) => {
-                           // Tách key ra, giữ lại các thuộc tính còn lại
-                           const { key, ...restField } = field;
-                           console.log(fields);
-
-                           return (
-                              <Space
-                                 key={key} // KEY đúng chỗ
-                                 style={{ display: "flex", marginBottom: 8 }}
-                                 align="start"
+               {baseId === null && (
+                  <>
+                     {" "}
+                     {/* Hình ảnh */}
+                     <Form.List
+                        name="images"
+                        rules={[
+                           {
+                              // Đảm bảo ít nhất một hình ảnh được nhập
+                              validator: async (_, images) => {
+                                 if (!images || images.length === 0) {
+                                    return message.error(
+                                       "Vui lòng thêm ít nhất một hình ảnh!"
+                                    );
+                                 }
+                                 return Promise.resolve();
+                              },
+                           },
+                        ]}
+                     >
+                        {(fields, { add, remove }) => (
+                           <>
+                              <label
+                                 style={{
+                                    display: "block",
+                                    marginBottom: "8px",
+                                 }}
                               >
-                                 <div
-                                    className="flex items-center justify-center gap-4 p-3 border rounded-md shadow-sm"
-                                    style={{ flexGrow: 1 }}
+                                 Hình ảnh (URLs)
+                              </label>
+
+                              {fields.map((field, index) => {
+                                 // Tách key ra, giữ lại các thuộc tính còn lại
+                                 const { key, ...restField } = field;
+                                 console.log(fields);
+
+                                 return (
+                                    <Space
+                                       key={key} // KEY đúng chỗ
+                                       style={{
+                                          display: "flex",
+                                          marginBottom: 8,
+                                       }}
+                                       align="start"
+                                    >
+                                       <div
+                                          className="flex items-center justify-center gap-4 p-3 border rounded-md shadow-sm"
+                                          style={{ flexGrow: 1 }}
+                                       >
+                                          <Form.Item
+                                             {...restField}
+                                             rules={[
+                                                {
+                                                   required: true,
+                                                   message:
+                                                      "URL hình ảnh không được trống",
+                                                },
+                                             ]}
+                                             style={{
+                                                flexGrow: 1,
+                                                marginBottom: 0,
+                                             }}
+                                          >
+                                             <Input
+                                                className="w-full"
+                                                placeholder={`URL hình ảnh ${
+                                                   index + 1
+                                                }`}
+                                             />
+                                          </Form.Item>
+
+                                          <Image
+                                             width={100}
+                                             height={100}
+                                             preview={false}
+                                             style={{ objectFit: "cover" }}
+                                             src={
+                                                debounceValueImageAddTour[index]
+                                             }
+                                          />
+                                       </div>
+
+                                       {/* Nút Xóa */}
+                                       <MinusCircleOutlined
+                                          onClick={() => remove(field.name)}
+                                          style={{
+                                             marginTop: "8px",
+                                             cursor: "pointer",
+                                          }}
+                                       />
+                                    </Space>
+                                 );
+                              })}
+
+                              {/* Nút thêm */}
+                              <Form.Item>
+                                 <Button
+                                    type="dashed"
+                                    onClick={() => add()}
+                                    block
+                                    icon={<PlusOutlined />}
                                  >
+                                    Thêm Hình ảnh
+                                 </Button>
+                              </Form.Item>
+                           </>
+                        )}
+                     </Form.List>
+                     {/* Chi tiết ngày */}
+                     <Form.List
+                        name="dayDetails"
+                        // Mảng dayDetails không được rỗng (ít nhất 1 mục)
+                        rules={[
+                           {
+                              validator: async (_, dayDetails) => {
+                                 if (!dayDetails || dayDetails.length === 0) {
+                                    return message.error(
+                                       "Vui lòng thêm ít nhất một chi tiết chuyến đi!"
+                                    );
+                                 }
+                                 return Promise.resolve();
+                              },
+                           },
+                        ]}
+                     >
+                        {(fields, { add, remove }) => (
+                           <>
+                              {/* Lặp qua các trường hiện có */}
+                              {fields.map(({ key, name, ...restField }) => (
+                                 <Space
+                                    key={key}
+                                    style={{
+                                       display: "flex",
+                                       marginBottom: 8,
+                                       border: "1px solid #ccc",
+                                       padding: "10px",
+                                       borderRadius: "4px",
+                                    }}
+                                    align="start"
+                                    direction="vertical" // Dùng vertical để các trường xếp dọc
+                                 >
+                                    <h3>Chi tiết Chuyến đi #{name + 1}</h3>
+
+                                    {/* 1. Ngày khởi hành */}
                                     <Form.Item
                                        {...restField}
+                                       name={[name, "departureDate"]}
+                                       label="Ngày khởi hành"
                                        rules={[
                                           {
                                              required: true,
                                              message:
-                                                "URL hình ảnh không được trống",
+                                                "Ngày khởi hành không để trống",
                                           },
                                        ]}
-                                       style={{ flexGrow: 1, marginBottom: 0 }}
                                     >
-                                       <Input
-                                          className="w-full"
-                                          placeholder={`URL hình ảnh ${
-                                             index + 1
-                                          }`}
+                                       <DatePicker
+                                          style={{ width: "100%" }}
+                                          placeholder="Chọn ngày khởi hành"
+                                          showTime={{ format: "HH:mm:ss" }} // Hiển thị chọn giờ/phút/giây
+                                          format={DATETIME_FORMAT} // Định dạng đầu ra/hiển thị
+                                          disabledDate={disabledPastDate} // Ngăn chọn ngày quá khứ
                                        />
                                     </Form.Item>
 
-                                    <Image
-                                       width={100}
-                                       height={100}
-                                       preview={false}
-                                       style={{ objectFit: "cover" }}
-                                       src={debounceValueImageAddTour[index]}
+                                    {/* 2. Ngày trở về */}
+                                    <Form.Item
+                                       {...restField}
+                                       name={[name, "returnDate"]}
+                                       label="Ngày trở về"
+                                       rules={[
+                                          {
+                                             required: true,
+                                             message:
+                                                "Ngày trở về không để trống",
+                                          },
+                                          {
+                                             // Validation chéo: Ngày trở về phải sau hoặc bằng ngày khởi hành
+                                             validator: (_, value) => {
+                                                // Lấy giá trị của trường ngày khởi hành từ cùng một mục (item)
+                                                const departureDate =
+                                                   formAddOrUpdateTour.getFieldValue(
+                                                      [
+                                                         "dayDetails",
+                                                         name,
+                                                         "departureDate",
+                                                      ]
+                                                   );
+
+                                                if (!value || !departureDate) {
+                                                   return Promise.resolve(); // Bỏ qua nếu một trong hai chưa được chọn (required đã xử lý)
+                                                }
+
+                                                // So sánh ngày trở về (value) phải sau hoặc bằng ngày khởi hành (departureDate)
+                                                if (
+                                                   value.isSameOrBefore(
+                                                      departureDate
+                                                   )
+                                                ) {
+                                                   return Promise.reject(
+                                                      new Error(
+                                                         "Ngày trở về phải sau ngày khởi hành!"
+                                                      )
+                                                   );
+                                                }
+
+                                                return Promise.resolve();
+                                             },
+                                          },
+                                       ]}
+                                    >
+                                       <DatePicker
+                                          style={{ width: "100%" }}
+                                          placeholder="Chọn ngày trở về"
+                                          showTime={{ format: "HH:mm:ss" }}
+                                          format={DATETIME_FORMAT}
+                                          disabledDate={disabledPastDate} // Ngăn chọn ngày quá khứ
+                                       />
+                                    </Form.Item>
+
+                                    {/* 3. Số lượng chỗ */}
+                                    <Form.Item
+                                       name={[name, "slot"]}
+                                       label="Số lượng chỗ"
+                                       rules={[
+                                          {
+                                             required: true,
+                                             message:
+                                                "Số lượng chỗ không để trống",
+                                          },
+                                          {
+                                             validator: (_, value) => {
+                                                // Kiểm tra nếu giá trị tồn tại và nhỏ hơn hoặc bằng 49
+                                                if (value && value <= 49) {
+                                                   return Promise.reject(
+                                                      new Error(
+                                                         "Số lượng chỗ phải lớn hơn hoặc bằng 50!"
+                                                      )
+                                                   );
+                                                }
+                                                // Nếu giá trị rỗng, quy tắc required đã xử lý
+                                                return Promise.resolve();
+                                             },
+                                          },
+                                       ]}
+                                    >
+                                       <InputNumber min={50} max={200} />
+                                    </Form.Item>
+
+                                    {/* 4. Chi phí */}
+                                    <Form.Item
+                                       name={[name, "price"]}
+                                       label="Chi phí"
+                                       rules={[
+                                          {
+                                             required: true,
+                                             message: "Chi phí không để trống",
+                                          },
+                                          {
+                                             // Giữ nguyên logic validator
+                                             validator: (_, value) => {
+                                                // Nếu giá trị tồn tại (không null/undefined) và nhỏ hơn hoặc bằng 0
+                                                if (
+                                                   value !== null &&
+                                                   value !== undefined &&
+                                                   value <= 0
+                                                ) {
+                                                   return Promise.reject(
+                                                      new Error(
+                                                         "Chi phí phải lớn hơn 0!"
+                                                      )
+                                                   );
+                                                }
+                                                return Promise.resolve();
+                                             },
+                                          },
+                                       ]}
+                                    >
+                                       <InputNumber
+                                          style={{ width: "100%" }}
+                                          min={1}
+                                          max={1000000000}
+                                          formatter={
+                                             vietnameseCurrencyFormatter
+                                          }
+                                          parser={vietnameseCurrencyParser}
+                                       />
+                                    </Form.Item>
+
+                                    {/* Nút xóa item */}
+                                    <MinusCircleOutlined
+                                       onClick={() => {
+                                          remove(name);
+                                       }}
+                                       style={{
+                                          alignSelf: "flex-end",
+                                          fontSize: "18px",
+                                       }}
                                     />
-                                 </div>
+                                 </Space>
+                              ))}
 
-                                 {/* Nút Xóa */}
-                                 <MinusCircleOutlined
-                                    onClick={() => remove(field.name)}
-                                    style={{
-                                       marginTop: "8px",
-                                       cursor: "pointer",
-                                    }}
-                                 />
-                              </Space>
-                           );
-                        })}
-
-                        {/* Nút thêm */}
-                        <Form.Item>
-                           <Button
-                              type="dashed"
-                              onClick={() => add()}
-                              block
-                              icon={<PlusOutlined />}
-                           >
-                              Thêm Hình ảnh
-                           </Button>
-                        </Form.Item>
-                     </>
-                  )}
-               </Form.List>
-
-               {/* Chi tiết ngày */}
-               <Form.List
-                  name="dayDetails"
-                  // Mảng dayDetails không được rỗng (ít nhất 1 mục)
-                  rules={[
-                     {
-                        validator: async (_, dayDetails) => {
-                           if (!dayDetails || dayDetails.length === 0) {
-                              return message.error(
-                                 "Vui lòng thêm ít nhất một chi tiết chuyến đi!"
-                              );
-                           }
-                           return Promise.resolve();
-                        },
-                     },
-                  ]}
-               >
-                  {(fields, { add, remove }) => (
-                     <>
-                        {/* Lặp qua các trường hiện có */}
-                        {fields.map(({ key, name, ...restField }) => (
-                           <Space
-                              key={key}
-                              style={{
-                                 display: "flex",
-                                 marginBottom: 8,
-                                 border: "1px solid #ccc",
-                                 padding: "10px",
-                                 borderRadius: "4px",
-                              }}
-                              align="start"
-                              direction="vertical" // Dùng vertical để các trường xếp dọc
-                           >
-                              <h3>Chi tiết Chuyến đi #{name + 1}</h3>
-
-                              {/* 1. Ngày khởi hành */}
-                              <Form.Item
-                                 {...restField}
-                                 name={[name, "departureDate"]}
-                                 label="Ngày khởi hành"
-                                 rules={[
-                                    {
-                                       required: true,
-                                       message: "Ngày khởi hành không để trống",
-                                    },
-                                 ]}
-                              >
-                                 <DatePicker
-                                    style={{ width: "100%" }}
-                                    placeholder="Chọn ngày khởi hành"
-                                    showTime={{ format: "HH:mm:ss" }} // Hiển thị chọn giờ/phút/giây
-                                    format={DATETIME_FORMAT} // Định dạng đầu ra/hiển thị
-                                    disabledDate={disabledPastDate} // Ngăn chọn ngày quá khứ
-                                 />
+                              {/* Nút thêm item */}
+                              <Form.Item>
+                                 <Button
+                                    type="dashed"
+                                    onClick={() => add()}
+                                    block
+                                    icon={<PlusOutlined />}
+                                 >
+                                    Thêm Chi tiết Chuyến đi
+                                 </Button>
                               </Form.Item>
-
-                              {/* 2. Ngày trở về */}
-                              <Form.Item
-                                 {...restField}
-                                 name={[name, "returnDate"]}
-                                 label="Ngày trở về"
-                                 rules={[
-                                    {
-                                       required: true,
-                                       message: "Ngày trở về không để trống",
-                                    },
-                                    {
-                                       // Validation chéo: Ngày trở về phải sau hoặc bằng ngày khởi hành
-                                       validator: (_, value) => {
-                                          // Lấy giá trị của trường ngày khởi hành từ cùng một mục (item)
-                                          const departureDate =
-                                             formAddOrUpdateTour.getFieldValue([
-                                                "dayDetails",
-                                                name,
-                                                "departureDate",
-                                             ]);
-
-                                          if (!value || !departureDate) {
-                                             return Promise.resolve(); // Bỏ qua nếu một trong hai chưa được chọn (required đã xử lý)
-                                          }
-
-                                          // So sánh ngày trở về (value) phải sau hoặc bằng ngày khởi hành (departureDate)
-                                          if (
-                                             value.isSameOrBefore(departureDate)
-                                          ) {
-                                             return Promise.reject(
-                                                new Error(
-                                                   "Ngày trở về phải sau ngày khởi hành!"
-                                                )
-                                             );
-                                          }
-
-                                          return Promise.resolve();
-                                       },
-                                    },
-                                 ]}
-                              >
-                                 <DatePicker
-                                    style={{ width: "100%" }}
-                                    placeholder="Chọn ngày trở về"
-                                    showTime={{ format: "HH:mm:ss" }}
-                                    format={DATETIME_FORMAT}
-                                    disabledDate={disabledPastDate} // Ngăn chọn ngày quá khứ
-                                 />
-                              </Form.Item>
-
-                              {/* 3. Số lượng chỗ */}
-                              <Form.Item
-                                 name={[name, "slot"]}
-                                 label="Số lượng chỗ"
-                                 rules={[
-                                    {
-                                       required: true,
-                                       message: "Số lượng chỗ không để trống",
-                                    },
-                                    {
-                                       validator: (_, value) => {
-                                          // Kiểm tra nếu giá trị tồn tại và nhỏ hơn hoặc bằng 49
-                                          if (value && value <= 49) {
-                                             return Promise.reject(
-                                                new Error(
-                                                   "Số lượng chỗ phải lớn hơn hoặc bằng 50!"
-                                                )
-                                             );
-                                          }
-                                          // Nếu giá trị rỗng, quy tắc required đã xử lý
-                                          return Promise.resolve();
-                                       },
-                                    },
-                                 ]}
-                              >
-                                 <InputNumber min={50} max={200} />
-                              </Form.Item>
-
-                              {/* 4. Chi phí */}
-                              <Form.Item
-                                 name={[name, "price"]}
-                                 label="Chi phí"
-                                 rules={[
-                                    {
-                                       required: true,
-                                       message: "Chi phí không để trống",
-                                    },
-                                    {
-                                       // Giữ nguyên logic validator
-                                       validator: (_, value) => {
-                                          // Nếu giá trị tồn tại (không null/undefined) và nhỏ hơn hoặc bằng 0
-                                          if (
-                                             value !== null &&
-                                             value !== undefined &&
-                                             value <= 0
-                                          ) {
-                                             return Promise.reject(
-                                                new Error(
-                                                   "Chi phí phải lớn hơn 0!"
-                                                )
-                                             );
-                                          }
-                                          return Promise.resolve();
-                                       },
-                                    },
-                                 ]}
-                              >
-                                 <InputNumber
-                                    style={{ width: "100%" }}
-                                    min={1}
-                                    max={1000000000}
-                                    formatter={vietnameseCurrencyFormatter}
-                                    parser={vietnameseCurrencyParser}
-                                 />
-                              </Form.Item>
-
-                              {/* Nút xóa item */}
-                              <MinusCircleOutlined
-                                 onClick={() => {
-                                    remove(name);
-                                 }}
-                                 style={{
-                                    alignSelf: "flex-end",
-                                    fontSize: "18px",
-                                 }}
-                              />
-                           </Space>
-                        ))}
-
-                        {/* Nút thêm item */}
-                        <Form.Item>
-                           <Button
-                              type="dashed"
-                              onClick={() => add()}
-                              block
-                              icon={<PlusOutlined />}
-                           >
-                              Thêm Chi tiết Chuyến đi
-                           </Button>
-                        </Form.Item>
-                     </>
-                  )}
-               </Form.List>
+                           </>
+                        )}
+                     </Form.List>
+                  </>
+               )}
 
                <Form.Item
                   label="Miêu tả"
@@ -2734,12 +2842,48 @@ export default function TourManager() {
                         size="large"
                         htmlType="submit"
                      >
-                        {/* {baseId ? "Cập nhật" : "Thêm"} */}
-                        {"Thêm"}
+                        {baseId ? "Cập nhật" : "Thêm"}
                      </Button>
                   </div>
                </Form.Item>
             </Form>
+         </Modal>
+
+         {/* Giao diện xóa chuyến đi */}
+         <Modal
+            title="Xóa chuyến đi"
+            open={isShowModalDelete}
+            onCancel={handleCloseModalDelete}
+            footer={
+               <div className="flex justify-end items-center gap-2">
+                  <Button
+                     onClick={handleCloseModalDelete}
+                     size="large"
+                     type="primary"
+                     ghost
+                  >
+                     Hủy
+                  </Button>
+                  <Button
+                     onClick={handleConfirmDelete}
+                     loading={isDeleteLoading}
+                     size="large"
+                     type="primary"
+                     danger
+                     ghost
+                  >
+                     Xóa
+                  </Button>
+               </div>
+            }
+         >
+            <div className="flex items-center justify-center gap-1 text-[15px]">
+               <p>Bạn có chắc chắn muốn xóa chuyến</p>
+               <p className="format font-semibold text-red-500">
+                  {currentTour?.tourName}
+               </p>
+               <p>này không</p>
+            </div>
          </Modal>
 
          {/* Giao diện header và nút Add chuyến đi */}

@@ -67,7 +67,6 @@ services:
       build: ./user-service
       container_name: user-service
       depends_on:
-#
          eureka-service-1:
             condition: service_started
       ports:
@@ -168,3 +167,4 @@ services:
 networks:
    spring-cloud-net:
       driver: bridge
+

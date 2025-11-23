@@ -27,6 +27,16 @@ const createTour = async (values) => {
    return response;
 };
 
+const updateTour = async (tourId, values) => {
+   const response = await baseURL.put(`/admin/tours/${tourId}`, values);
+   return response;
+}
+
+const removeTourById = async (tourId) => {
+   const response = await baseURL.delete(`/admin/tours/${tourId}`);
+   return response;
+};
+
 // =====================================================================================================================
 // SERVICE XEM HÌNH ẢNH
 // =====================================================================================================================
@@ -141,17 +151,23 @@ const unblockStatusDayDetail = async (tourId, dayDetailId) => {
    return response;
 };
 
-const updateDayDetailByTourIdAndDayDetailId = async (tourId, dayDetailId, values) => {
+const updateDayDetailByTourIdAndDayDetailId = async (
+   tourId,
+   dayDetailId,
+   values
+) => {
    const response = await baseURL.put(
       `/admin/tours/${tourId}/dayDetails/${dayDetailId}`,
       values
    );
    return response;
-}
+};
 
 export {
    getAllTours,
    createTour,
+   updateTour,
+   removeTourById,
    getAllToursNotFilter,
    getAllImagesUrlsByTourIdNotePage,
    getAllImagesUrlsByTourIdWithPage,

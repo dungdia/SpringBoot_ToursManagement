@@ -239,11 +239,11 @@ public class ATourController {
     }
 
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
-    @DeleteMapping("/{dayId}")
-    public ResponseEntity<?> deleteDayById(@PathVariable Long dayId){
+    @DeleteMapping("/{tourId}")
+    public ResponseEntity<?> deleteTourById(@PathVariable Long tourId){
         try {
-            tourService.deleteById(dayId);
-            return ResponseEntity.ok().body("Xoá ngày thành công.");
+            tourService.deleteById(tourId);
+            return ResponseEntity.ok().body("Xoá chuyến đi thành công.");
         } catch (CustomException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

@@ -249,7 +249,7 @@ public class TourServiceImpl implements ITourService {
         } catch (CustomException e) {
             throw e;
         } catch (Exception e) {
-            throw new CustomException("Cập nhật ngày bị lỗi: " + e.getMessage());
+            throw new CustomException("Thêm chuyến đi bị lỗi: " + e.getMessage());
         }
     }
 
@@ -366,6 +366,12 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
     @Override
     public TourResponseDTO updateTour(UpdateTourRequestDTO updateTourRequestDTO, Long tourId) throws CustomException {
         Tours existingTour = findById(tourId);
+
+        Boolean isTourUsed = tourToBookingServiceCommunication.checkIfTourIsUsedInBooking(tourId);
+
+        if(isTourUsed){
+            throw new CustomException("Không thể cập nhật Tour (ID: " + tourId + ") vì nó đã được khách hàng đặt.");
+        }
 
         // Cập nhật các trường khác null và thực sự khác biệt
         if (updateTourRequestDTO.getTourName() != null &&
@@ -535,12 +541,18 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
     public void deleteById(Long tourId) throws CustomException {
         Tours tour = findById(tourId);
 
+        Boolean isTourUsed = tourToBookingServiceCommunication.checkIfTourIsUsedInBooking(tourId);
+
+        if(isTourUsed){
+            throw new CustomException("Không thể xóa Tour (ID: " + tourId + ") vì nó đã được khách hàng đặt.");
+        }
+
         // Nếu có DayDetails, không cho phép xóa
         if (tour.getDayDetails() != null && !tour.getDayDetails().isEmpty()) {
 //            Xóa từng cái một DayDetails liên quan trước khi xóa Tour
-            throw new CustomException("Không thể xóa Ngày này (ID: " + tourId + ") vì nó có chứa " +
-                    tour.getDayDetails().size() + " chi tiết ngày liên quan. Vui lòng xóa chi tiết ngày trước.");
-//            dayDetailRepository.deleteAll(tour.getDayDetails()); // Xóa tất cả DayDetails liên quan trước khi xóa Tour
+//            throw new CustomException("Không thể xóa Ngày này (ID: " + tourId + ") vì nó có chứa " +
+//                    tour.getDayDetails().size() + " chi tiết ngày liên quan. Vui lòng xóa chi tiết ngày trước.");
+            dayDetailRepository.deleteAll(tour.getDayDetails()); // Xóa tất cả DayDetails liên quan trước khi xóa Tour
         }
 
         if(tour.getImages() != null && !tour.getImages().isEmpty()){
