@@ -3,6 +3,7 @@ package com.ra.tourservice.service;
 import com.ra.tourservice.exception.CustomException;
 import com.ra.tourservice.model.dto.req.TourRequestDTO;
 import com.ra.tourservice.model.dto.req.UpdateTourRequestDTO;
+import com.ra.tourservice.model.dto.resp.DayDetailBookingResponseDTO;
 import com.ra.tourservice.model.dto.resp.DayDetailResponseDTO;
 import com.ra.tourservice.model.dto.resp.TourBookingResponseDTO;
 import com.ra.tourservice.model.dto.resp.TourResponseDTO;
@@ -26,7 +27,18 @@ public interface ITourService {
     );
 
     List<Images> findAllImageUrlsByTourId(Long tourId) throws CustomException;
-
+    Page<Images> findAllImageUrlsByTourIdWithPage(Long tourId, Pageable pageable) throws CustomException;
+    //    Lấy tất cả DayDetails theo TourId
+    List<DayDetailBookingResponseDTO> findAllDayDetailByTourId(Long tourId) throws CustomException;
+    Page<DayDetailBookingResponseDTO> findAllDayDetailByTourIdWithFilterPage(
+            Long tourId,
+            String search,
+            Boolean status,
+            Date departureDateFrom,
+            Date departureDateTo,
+            Date returnDateFrom,
+            Date returnDateTo,
+            Pageable pageable) throws CustomException;
 //    Thêm mới 1 Tour
     TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException;
     Tours findById(Long tourId) throws CustomException;
@@ -43,13 +55,12 @@ public interface ITourService {
     Tours updateImages(UpdateTourRequestDTO updateTourRequestDTO, Long tourId, Long imageId) throws CustomException;
 //    Lấy DayDetail theo TourId và DayDetailId
     DayDetails findDayDetailById(Long tourId,Long dayDetailId) throws CustomException;
-//    Lấy tất cả DayDetails theo TourId
-    List<DayDetails> findDayDetailByTourId(Long tourId) throws CustomException;
 //    Xóa Tour theo Id
     void deleteById(Long tourId) throws CustomException;
 //    Xóa DayDetail theo TourId và DayDetailId
     void deleteDayDetailById(Long tourId, Long dayDetailId) throws CustomException;
     void deleteImageById(Long tourId, Long imageId) throws CustomException;
+    void openBlockDayDetail(Long tourId, Long dayDetailId) throws CustomException;
 
 //    Trừ số lượng slots trong DayDetails
     void deductSlots(Long dayDetailId, Long slots) throws CustomException;

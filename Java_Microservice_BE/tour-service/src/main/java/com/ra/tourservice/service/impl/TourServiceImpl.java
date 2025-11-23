@@ -15,6 +15,7 @@ import com.ra.tourservice.service.ITourService;
 import com.ra.tourservice.service.ITourToBookingServiceCommunication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -80,54 +81,100 @@ public class TourServiceImpl implements ITourService {
         return new ArrayList<>(tour.getImages());
     }
 
-    //    Thêm mới 1 Tour không cần dayDetails và images
-//    @Override
-//    public TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException {
-//        try {
-////            Tên Tour và Mô tả không được để trống
-//            if(tourRequestDTO.getTourName() == null || tourRequestDTO.getTourName().isEmpty()){
-//                throw new CustomException("Tên Tour không được để trống!");
-//            }
-//
-//            if (tourRequestDTO.getDescription() == null || tourRequestDTO.getDescription().isEmpty()) {
-//                throw new CustomException("Mô tả Tour không được để trống!");
-//            }
-//
-////            Kiểm tra AreaId
-//            Long areaId = tourRequestDTO.getAreaId();
-//            if (areaId == null) {
-//                throw new CustomException("Area ID không được để trống!");
-//            }
-//
-//            AreaResponseDTO area = areaServiceCommunication.getAreaById(areaId);
-//            if (area == null || !area.getStatus()) {
-//                throw new CustomException("Area (ID: " + areaId + ") không tồn tại hoặc không hoạt động.");
-//            }
-//
-////            Chuyển đổi DTO sang Entity
-//            Tours tours = requestToEntity(tourRequestDTO);
-//
-//            // Nếu DayDetails có dữ liệu (dù không bắt buộc), cần thiết lập quan hệ
-//            if (tours.getDayDetails() != null) {
-//                for (DayDetails detail : tours.getDayDetails()) {
-//                    detail.setTour(tours); // thiết lập quan hệ cha-con
-//                    detail.setStatus(true); // Gán mặc định
-//                }
-//            }
-//
-//            Tours savedTour = tourRepository.save(tours);
-//
-//            // 4. ÁNH XẠ
-//            return mapEntityToResponseDTO(savedTour);
-//
-//        } catch (CustomException e) {
-//            throw e;
-//        } catch (Exception e) {
-//            // Sửa lại thông báo lỗi để phản ánh hành động thêm mới Tour
-//            throw new CustomException("Thêm Tour mới bị lỗi không xác định: " + e.getMessage());
-//        }
-//    }
-//    Thêm mới 1 Tour
+    @Override
+    public Page<Images> findAllImageUrlsByTourIdWithPage(Long tourId, Pageable pageable) throws CustomException {
+
+        if (!tourRepository.existsById(tourId)) {
+            throw new CustomException("Không tìm thấy Tour với ID: " + tourId + ".");
+        }
+        return tourRepository.findImagesByTourId(tourId, pageable);
+    }
+
+    // Lấy tất cả DayDetails theo TourId
+    @Override
+    public List<DayDetailBookingResponseDTO> findAllDayDetailByTourId(Long tourId) throws CustomException {
+
+        Tours tour = findById(tourId);
+        List<DayDetails> dayDetails = dayDetailRepository.findByTour(tour);
+
+        AreaResponseDTO areaDetails = areaServiceCommunication.getAreaById(tour.getAreaId());
+
+        TourInfoBasicResponseDTO tourInfo = TourInfoBasicResponseDTO.builder()
+                .id(tour.getId())
+                .tourName(tour.getTourName())
+                .description(tour.getDescription())
+                .area(areaDetails)
+                .build();
+
+        List<DayDetailBookingResponseDTO> responseDTOs = new ArrayList<>();
+
+        for (DayDetails detail : dayDetails) {
+            Boolean isBooked = tourToBookingServiceCommunication.checkIfTourIsUsedInBooking(tour.getId());
+            DayDetailBookingResponseDTO dto = mapToDayDetailBookingResponseDTO(
+                    detail,
+                    tourInfo,
+                    isBooked
+            );
+
+            responseDTOs.add(dto);
+        }
+
+        return responseDTOs;
+    }
+
+    @Override
+    public Page<DayDetailBookingResponseDTO> findAllDayDetailByTourIdWithFilterPage(
+            Long tourId,
+            String search,
+            Boolean status,
+            Date departureDateFrom,
+            Date departureDateTo,
+            Date returnDateFrom,
+            Date returnDateTo,
+            Pageable pageable) throws CustomException {
+
+        Tours tour = findById(tourId);
+
+        Page<DayDetails> dayDetailPage = dayDetailRepository.findAllByTourIdAndDateFilters(
+                tourId,
+                search,
+                status,
+                departureDateFrom,
+                departureDateTo,
+                returnDateFrom,
+                returnDateTo,
+                pageable
+        );
+
+        AreaResponseDTO areaDetails = areaServiceCommunication.getAreaById(tour.getAreaId());
+
+        TourInfoBasicResponseDTO tourInfo = TourInfoBasicResponseDTO.builder()
+                .id(tour.getId())
+                .tourName(tour.getTourName())
+                .description(tour.getDescription())
+                .area(areaDetails)
+                .build();
+
+        //  Ánh xạ Page<DayDetails> sang Page<DayDetailBookingResponseDTO>
+        List<DayDetailBookingResponseDTO> dtoList = dayDetailPage.getContent().stream()
+                .map(detail -> {
+                    try {
+                        // 3a. Lấy trạng thái Booking (Gọi Booking Service N lần)
+                        Boolean isBooked = tourToBookingServiceCommunication.checkIfDayDetailInTourIsUsed(detail.getId());
+
+                        // 3b. Sử dụng hàm map đã tối ưu
+                        return mapToDayDetailBookingResponseDTO(detail, tourInfo, isBooked);
+                    } catch (CustomException e) {
+                        // Xử lý ngoại lệ trong quá trình map/gọi Microservice
+                        throw new RuntimeException("Lỗi khi ánh xạ DayDetail ID: " + detail.getId(), e);
+                    }
+                })
+                .collect(Collectors.toList());
+
+        // Trả về Page mới (giữ nguyên thông tin phân trang)
+        return new PageImpl<>(dtoList, pageable, dayDetailPage.getTotalElements());
+    }
+
     @Override
     public TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException {
         try {
@@ -356,12 +403,17 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
     public Tours updateDayDetail(UpdateTourRequestDTO updateTourRequestDTO, Long tourId, Long dayDetailId)
             throws CustomException
     {
+        Boolean isDayDetailUsed = tourToBookingServiceCommunication.checkIfDayDetailInTourIsUsed(dayDetailId);
+        if(isDayDetailUsed){
+            throw new CustomException("Không thể cập nhật Chi tiết Ngày (ID: " + dayDetailId + ") vì nó đã được khách hàng đặt.");
+        }
+
         // Tìm DayDetail hiện tại
         DayDetails existingDetail = findDayDetailById(tourId, dayDetailId);
         // Lấy DayDetail từ DTO
         DayDetails incomingDetail = updateTourRequestDTO.getDayDetail();
         // Tải tất cả chi tiết ngày của Day cha (bao gồm cả existingDetail)
-        List<DayDetails> siblingDetails = findDayDetailByTourId(tourId);
+        List<DayDetailBookingResponseDTO> siblingDetails = findAllDayDetailByTourId(tourId);
 
             // Cập nhật các trường khác null và thưc sự khác biệt
             // Cập nhật Ngày Khởi hành
@@ -385,7 +437,7 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
         }
 
         // Kiểm tra trùng ngày với các DayDetails CÒN LẠI trong cùng Days
-        for (DayDetails sibling : siblingDetails) {
+        for (DayDetailBookingResponseDTO sibling : siblingDetails) {
             // Lọc bỏ chính bản ghi đang được cập nhật
             if (!sibling.getId().equals(existingDetail.getId())) {
 
@@ -411,8 +463,8 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
             // Cập nhật Số chỗ (Slot)
             if (incomingDetail.getSlot() != null &&
                     !incomingDetail.getSlot().equals(existingDetail.getSlot())) {
-                if(incomingDetail.getSlot() < 50 || incomingDetail.getSlot() > 200){
-                    throw new CustomException("Số chỗ trong chi tiết ngày không được để trống hoặc nhỏ hơn 50 hoặc lớn hơn 200");
+                if(incomingDetail.getSlot() <=0 || incomingDetail.getSlot() > 200){
+                    throw new CustomException("Số chỗ trong chi tiết ngày không được để trống hoặc nhỏ hơn 0 hoặc lớn hơn 200");
                 }
                 existingDetail.setSlot(incomingDetail.getSlot());
             }
@@ -476,12 +528,7 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
                 .orElseThrow(() -> new CustomException("Không tìm thấy Chi tiết Ngày có Id là:  " + dayDetailId));
     }
 
-    // Lấy tất cả DayDetails theo TourId
-    @Override
-    public List<DayDetails> findDayDetailByTourId(Long tourId) throws CustomException {
-        Tours tour = findById(tourId);
-        return dayDetailRepository.findByTour(tour);
-    }
+
 
 //    Xóa Tour theo Id
     @Override
@@ -508,8 +555,23 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
 //    Xóa DayDetail theo TourId và DayDetailId
     @Override
     public void deleteDayDetailById(Long tourId, Long dayDetailId) throws CustomException {
+        Boolean isDayDetailUsed = tourToBookingServiceCommunication.checkIfDayDetailInTourIsUsed(dayDetailId);
+        if(isDayDetailUsed){
+            throw new CustomException("Không thể xóa Chi tiết Ngày (ID: " + dayDetailId + ") vì nó đã được khách hàng đặt.");
+        }
+
         DayDetails dayDetail = findDayDetailById(tourId, dayDetailId);
-        dayDetailRepository.delete(dayDetail);
+       if(dayDetail!= null){
+           if(dayDetail.getStatus()){
+               dayDetail.setStatus(false);
+               dayDetailRepository.save(dayDetail);
+               throw new CustomException("Chi tiết ngày (ID: " + dayDetailId + ") vẫn đang hoạt động. Trạng thái đã được chuyển sang không hoạt động.");
+           }else {
+               dayDetailRepository.delete(dayDetail);
+           }
+       } else {
+           throw new CustomException("Không tìm thấy Chi tiết Ngày có Id là: " + dayDetailId);
+       }
     }
 
 //    Xóa Image theo TourId và ImageId
@@ -534,6 +596,22 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
         tourRepository.save(tour);
     }
 
+//    Mở khóa Chi tiết Ngày
+    @Override
+    public void openBlockDayDetail(Long tourId, Long dayDetailId) throws CustomException {
+        DayDetails dayDetail = findDayDetailById(tourId, dayDetailId);
+        if(dayDetail == null){
+            throw new CustomException("Chi tiết Ngày không tồn tại");
+        }
+        if(dayDetail.getStatus()){
+            throw new CustomException("Chi tiết Ngày vẫn đang hoạt động");
+        }else {
+            dayDetail.setStatus(true);
+        }
+        dayDetailRepository.save(dayDetail);
+    }
+
+//    Đặt chỗ - trừ chỗ trống (slots) trong DayDetail
     @Override
     public void deductSlots(Long dayDetailId, Long slots) throws CustomException {
         DayDetails dayDetail = dayDetailRepository.findById(dayDetailId)
@@ -602,6 +680,24 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
                 .departureDate(dayDetail.getDepartureDate())
                 .returnDate(dayDetail.getReturnDate())
                 .slot(dayDetail.getSlot())
+                .price(dayDetail.getPrice())
+                .status(dayDetail.getStatus())
+                .tour(tourInfo)
+                .build();
+    }
+
+//    Chuyển từ Entity sang DayDetailBookingResponseDTO
+    private DayDetailBookingResponseDTO mapToDayDetailBookingResponseDTO(
+            DayDetails dayDetail,
+            TourInfoBasicResponseDTO tourInfo,
+            Boolean isBooked) throws CustomException {
+
+        return DayDetailBookingResponseDTO.builder()
+                .id(dayDetail.getId())
+                .departureDate(dayDetail.getDepartureDate())
+                .returnDate(dayDetail.getReturnDate())
+                .slot(dayDetail.getSlot())
+                .isBooked(isBooked)
                 .price(dayDetail.getPrice())
                 .status(dayDetail.getStatus())
                 .tour(tourInfo)

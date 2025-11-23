@@ -1,5 +1,6 @@
 package com.ra.tourservice.repository;
 
+import com.ra.tourservice.model.entity.Images;
 import com.ra.tourservice.model.entity.Tours;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,4 +22,8 @@ public interface ITourRepository extends JpaRepository<Tours, Long> {
             @Param("areaId") Long areaId,
             Pageable pageable
     );
+
+    @Query(value = "SELECT img FROM Tours t JOIN t.images img WHERE t.id = :tourId",
+            countQuery = "SELECT COUNT(img) FROM Tours t JOIN t.images img WHERE t.id = :tourId")
+    Page<Images> findImagesByTourId(@Param("tourId") Long tourId, Pageable pageable);
 }

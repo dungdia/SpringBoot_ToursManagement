@@ -68,8 +68,9 @@ public class ATourController {
         return ResponseEntity.ok().body(tours);
     }
 
+//    lấy tất cả hình ảnh theo TourId không phân trang
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
-    @GetMapping("findAllImagesURLs/{tourId}")
+    @GetMapping("/findAllImagesURLsNotPage/{tourId}")
     public ResponseEntity<?> getAllTourImagesURLs(@PathVariable Long tourId){
         try {
             List<Images> imageURLs = tourService.findAllImageUrlsByTourId(tourId);
@@ -79,11 +80,59 @@ public class ATourController {
         }
     }
 
+    //    lấy tất cả hình ảnh theo TourId có phân trang
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
-    @GetMapping("findAllDayDetails/{tourId}")
+    @GetMapping("/findAllImagesURLsWithPage/{tourId}")
+    public ResponseEntity<?> getAllTourImagesURLsWithPage(
+            @PathVariable Long tourId,
+            @PageableDefault(page = 0,size = 4,sort = "id",direction = Sort.Direction.ASC) Pageable pageable)
+    {
+        try {
+            Page<Images> imageURLs = tourService.findAllImageUrlsByTourIdWithPage(tourId, pageable);
+            return ResponseEntity.ok().body(imageURLs);
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+//      Lấy tất cả DayDetails theo TourId không phân trang
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/findAllDayDetailsNotPage/{tourId}")
     public ResponseEntity<?> getAllDayDetailsByTourId(@PathVariable Long tourId){
         try {
-            return ResponseEntity.ok().body(tourService.findDayDetailByTourId(tourId));
+            return ResponseEntity.ok().body(tourService.findAllDayDetailByTourId(tourId));
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+//    Lấy tất cả DayDetails theo TourId có phân trang và filter
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/findAllDayDetailsWithFilterPage/{tourId}")
+    public ResponseEntity<?> getAllDayDetailsByTourIdWithFilterPage(
+            @PathVariable Long tourId,
+            @RequestParam(defaultValue = "")String search,
+            @RequestParam(required = false) Boolean status,
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss") Date departureDateFrom,
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss") Date departureDateTo,
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss") Date returnDateFrom,
+            @RequestParam(required = false)
+            @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss") Date returnDateTo,
+            @PageableDefault(page = 0,size = 5,sort = "id",direction = Sort.Direction.ASC) Pageable pageable)
+    {
+        try {
+            return ResponseEntity.ok().body(tourService.findAllDayDetailByTourIdWithFilterPage(
+                    tourId,
+                    search,
+                    status,
+                    departureDateFrom,
+                    departureDateTo,
+                    returnDateFrom,
+                    returnDateTo,
+                    pageable));
         }catch (CustomException ex){
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
@@ -162,7 +211,7 @@ public class ATourController {
     }
 
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
-    @PutMapping("/{tourId}/details/{dayDetailId}" )
+    @PutMapping("/{tourId}/dayDetails/{dayDetailId}" )
     public ResponseEntity<?> updateDayDetailByTourIdAndDetailId(
             @Valid @RequestBody UpdateTourRequestDTO updateTourRequestDTO,
             @PathVariable Long tourId,
@@ -201,13 +250,13 @@ public class ATourController {
     }
 
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
-    @DeleteMapping("/{dayId}/details/{dayDetailId}")
+    @DeleteMapping("/{tourId}/dayDetails/{dayDetailId}")
     public ResponseEntity<?> deleteDayDetailById(
-            @PathVariable Long dayId,
+            @PathVariable Long tourId,
             @PathVariable Long dayDetailId)
     {
         try {
-            tourService.deleteDayDetailById(dayId, dayDetailId);
+            tourService.deleteDayDetailById(tourId, dayDetailId);
             return ResponseEntity.ok().body("Xoá chi tiết ngày thành công.");
         } catch (CustomException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
@@ -223,6 +272,20 @@ public class ATourController {
         try {
             tourService.deleteImageById(tourId, imageId);
             return ResponseEntity.ok().body("Xoá hình ảnh thành công.");
+        } catch (CustomException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @PostMapping("/{tourId}/dayDetails/{dayDetailId}/openBlock")
+    public ResponseEntity<?> openBlockDayDetail(
+            @PathVariable Long tourId,
+            @PathVariable Long dayDetailId)
+    {
+        try {
+            tourService.openBlockDayDetail(tourId, dayDetailId);
+            return ResponseEntity.ok().body("Đã mở khóa chi tiết ngày thành công.");
         } catch (CustomException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

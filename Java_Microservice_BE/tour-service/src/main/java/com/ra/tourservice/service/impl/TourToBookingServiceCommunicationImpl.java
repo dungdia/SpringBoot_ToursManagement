@@ -21,4 +21,14 @@ public class TourToBookingServiceCommunicationImpl implements ITourToBookingServ
             throw new CustomException("Lỗi khi kiểm tra Tour có được sử dụng trong Booking Service: " + ex.getMessage());
         }
     }
+
+    @Override
+    public Boolean checkIfDayDetailInTourIsUsed(Long dayDetailId) throws CustomException {
+        String url = BOOKING_SERVICE_URL + "admin/bookings/dayDetails/" + dayDetailId + "/check";
+        try {
+            return restTemplate.getForObject(url, Boolean.class);
+        } catch (Exception ex) {
+            throw new CustomException("Lỗi khi kiểm tra Day-Detail có được sử dụng trong Booking Service: " + ex.getMessage());
+        }
+    }
 }

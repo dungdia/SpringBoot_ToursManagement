@@ -261,6 +261,7 @@ export default function AreaManager() {
          } else {
             message.error("Xóa thất bại, vui lòng thử lại!");
          }
+         setCurrentPage(1);
       } catch (error) {
          if (error.status === HttpStatusCode.BadRequest) {
             message.warning(error?.response?.data);
@@ -366,35 +367,35 @@ export default function AreaManager() {
                   <Input ref={areaNameRef} />
                </Form.Item>
 
-               <Form.Item
-                  label="Trạng thái"
-                  name="status"
-                  rules={[
-                     {
-                        required: true,
-                        message: "Vui lòng hãy chọn trạng thái!",
-                     },
-                  ]}
-               >
-                  <Select
-                     className="w-[180px]!"
-                     showSearch
-                     placeholder="Chọn 1 hành động"
-                     optionFilterProp="label"
-                     // onChange={onChange}
-                     // onSearch={onSearch}
-                     options={[
+               {baseId && (
+                  <Form.Item
+                     label="Trạng thái"
+                     name="status"
+                     rules={[
                         {
-                           value: true,
-                           label: "Hoạt động",
-                        },
-                        {
-                           value: false,
-                           label: "Không hoạt động",
+                           required: true,
+                           message: "Vui lòng hãy chọn trạng thái!",
                         },
                      ]}
-                  />
-               </Form.Item>
+                  >
+                     <Select
+                        className="w-[180px]!"
+                        showSearch
+                        placeholder="Chọn 1 hành động"
+                        optionFilterProp="label"
+                        options={[
+                           {
+                              value: true,
+                              label: "Hoạt động",
+                           },
+                           {
+                              value: false,
+                              label: "Không hoạt động",
+                           },
+                        ]}
+                     />
+                  </Form.Item>
+               )}
 
                <Form.Item>
                   <div className="flex items-center justify-end gap-3">
