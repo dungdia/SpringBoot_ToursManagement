@@ -27,9 +27,24 @@ const createTour = async (values) => {
    return response;
 };
 
-const getAllImagesUrlsByTourId = async (tourId) => {
+// =====================================================================================================================
+// SERVICE XEM HÌNH ẢNH
+// =====================================================================================================================
+
+const getAllImagesUrlsByTourIdNotePage = async (tourId) => {
    const response = await baseURL.get(
-      `/admin/tours/findAllImagesURLs/${tourId}`
+      `/admin/tours/findAllImagesURLsNotPage/${tourId}`
+   );
+   return response;
+};
+
+const getAllImagesUrlsByTourIdWithPage = async (
+   tourId,
+   currentPage,
+   pageSize
+) => {
+   const response = await baseURL.get(
+      `/admin/tours/findAllImagesURLsWithPage/${tourId}?page=${currentPage}&size=${pageSize}`
    );
    return response;
 };
@@ -54,12 +69,99 @@ const removeImageByTourIdAndImageId = async (tourId, imageId) => {
    return response;
 };
 
+// =====================================================================================================================
+// SERVICE XEM LỊCH TRÌNH
+// =====================================================================================================================
+
+const getAllDayDetailsByTourIdNotPage = async (tourId) => {
+   const response = await baseURL.get(
+      `/admin/tours/findAllDayDetailsNotPage/${tourId}`
+   );
+   return response;
+};
+
+const getAllDayDetailsByTourIdWithFilterPage = async (
+   tourId,
+   search = "",
+   status = null,
+   departureDateFrom = null,
+   departureDateTo = null,
+   returnDateFrom = null,
+   returnDateTo = null,
+   currentPage = 0,
+   pageSize = 5
+) => {
+   let url = `/admin/tours/findAllDayDetailsWithFilterPage/${tourId}?search=${search}&page=${currentPage}&size=${pageSize}`;
+
+   // Thêm tham số status nếu không phải là null
+   if (status !== null) {
+      url += `&status=${status}`;
+   }
+
+   // Thêm tham số departureDateFrom nếu không phải là null
+   if (departureDateFrom !== null) {
+      url += `&departureDateFrom=${departureDateFrom}`;
+   }
+   // Thêm tham số departureDateTo nếu không phải là null
+   if (departureDateTo !== null) {
+      url += `&departureDateTo=${departureDateTo}`;
+   }
+   // Thêm tham số returnDateFrom nếu không phải là null
+   if (returnDateFrom !== null) {
+      url += `&returnDateFrom=${returnDateFrom}`;
+   }
+   // Thêm tham số returnDateTo nếu không phải là null
+   if (returnDateTo !== null) {
+      url += `&returnDateTo=${returnDateTo}`;
+   }
+
+   const response = await baseURL.get(url);
+   return response;
+};
+
+const createDayDetailForTour = async (tourId, values) => {
+   const response = await baseURL.post(
+      `/admin/tours/${tourId}/dayDetails`,
+      values
+   );
+   return response;
+};
+
+const removeDayDetailByTourIdAndDayDetailId = async (tourId, dayDetailId) => {
+   const response = await baseURL.delete(
+      `/admin/tours/${tourId}/dayDetails/${dayDetailId}`
+   );
+   return response;
+};
+
+const unblockStatusDayDetail = async (tourId, dayDetailId) => {
+   const response = await baseURL.post(
+      `/admin/tours/${tourId}/dayDetails/${dayDetailId}/openBlock`
+   );
+   return response;
+};
+
+const updateDayDetailByTourIdAndDayDetailId = async (tourId, dayDetailId, values) => {
+   const response = await baseURL.put(
+      `/admin/tours/${tourId}/dayDetails/${dayDetailId}`,
+      values
+   );
+   return response;
+}
+
 export {
    getAllTours,
    createTour,
    getAllToursNotFilter,
-   getAllImagesUrlsByTourId,
+   getAllImagesUrlsByTourIdNotePage,
+   getAllImagesUrlsByTourIdWithPage,
    createImagesForTour,
    updateImagesForTour,
    removeImageByTourIdAndImageId,
+   getAllDayDetailsByTourIdNotPage,
+   getAllDayDetailsByTourIdWithFilterPage,
+   createDayDetailForTour,
+   removeDayDetailByTourIdAndDayDetailId,
+   unblockStatusDayDetail,
+   updateDayDetailByTourIdAndDayDetailId,
 };

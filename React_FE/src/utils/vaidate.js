@@ -68,24 +68,28 @@ const handleNewPasswordChange = (value, setNewPasswordStatus) => {
 };
 
 // Hàm formatter cho VNĐ
-const vietnameseCurrencyFormatter = value => {
-  if (value === null || value === undefined) {
-    return '0 ₫';
-  }
-  
-  // Tách phần nguyên và phần thập phân
-  const [start, end] = `${value}`.split('.');
-  
-  // Định dạng phần nguyên với dấu chấm phân cách hàng nghìn
-  const v = `${start}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.'); // Dùng dấu chấm làm dấu phân cách hàng nghìn
-  
-  // Trả về chuỗi đã định dạng kèm theo ký hiệu VNĐ
-  return `${end ? `${v},${end}` : `${v}`} ₫`; 
+const vietnameseCurrencyFormatter = (value) => {
+   if (value === null || value === undefined) {
+      return "0 ₫";
+   }
+
+   // Tách phần nguyên và phần thập phân
+   const [start, end] = `${value}`.split(".");
+
+   // Định dạng phần nguyên với dấu chấm phân cách hàng nghìn
+   const v = `${start}`.replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Dùng dấu chấm làm dấu phân cách hàng nghìn
+
+   // Trả về chuỗi đã định dạng kèm theo ký hiệu VNĐ
+   return `${end ? `${v},${end}` : `${v}`} ₫`;
 };
 
-// Hàm parser 
-const vietnameseCurrencyParser = value => {
-    return value?.replace(/\₫\s?|(\.*)/g, ''); // Loại bỏ ₫ và dấu chấm (.)
+// Hàm parser
+const vietnameseCurrencyParser = (value) => {
+   return value?.replace(/\₫\s?|(\.*)/g, ""); // Loại bỏ ₫ và dấu chấm (.)
+};
+
+const formatMoney = (money) => {
+   return money.toLocaleString("it-IT", { style: "currency", currency: "VND" });
 };
 
 export {
@@ -98,4 +102,5 @@ export {
    validatePassword,
    vietnameseCurrencyFormatter,
    vietnameseCurrencyParser,
+   formatMoney,
 };

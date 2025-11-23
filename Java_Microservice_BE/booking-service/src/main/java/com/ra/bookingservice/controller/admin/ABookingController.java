@@ -103,4 +103,11 @@ public class ABookingController {
         return ResponseEntity.ok().body(isUsed);
     }
 
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/dayDetails/{dayDetailId}/check")
+    public ResponseEntity<?> checkIfDayDetailInTourIsUsed(@PathVariable Long dayDetailId) throws CustomException {
+        Boolean isUsed = bookingToTourService.checkIfDayDetailInTourIsUsed(dayDetailId);
+        return ResponseEntity.ok().body(isUsed);
+    }
+
 }

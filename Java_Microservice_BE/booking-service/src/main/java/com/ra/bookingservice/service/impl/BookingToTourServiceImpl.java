@@ -30,6 +30,12 @@ public class BookingToTourServiceImpl implements IBookingToTourService {
     }
 
     @Override
+    public Boolean checkIfDayDetailInTourIsUsed(Long dayDetailId) throws CustomException {
+        // Kiểm tra xem có booking nào tồn tại cho DayDetail ID không
+        return bookingRepository.existsByDayDetailId(dayDetailId);
+    }
+
+    @Override
     public Boolean existsByTourId(Long tourId) throws CustomException {
 //        Kiểm tra có booking nào sử dụng Tour ID không
         return checkIfTourIsUsed(tourId);

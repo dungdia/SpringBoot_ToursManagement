@@ -535,6 +535,7 @@ export default function AccountManager() {
          } else {
             message.error("Xóa thất bại, vui lòng thử lại!");
          }
+         setCurrentPage(1); // Quay về trang 1 sau khi xóa
       } catch (error) {
          if (error.status === HttpStatusCode.BadRequest) {
             message.warning(error?.response?.data);
