@@ -377,6 +377,7 @@ export default function TourManager() {
    // Ẩn modal thêm
    const handleCloseModal = () => {
       setIsShowModal(false);
+      setBaseId(null);
       formAddOrUpdateTour.resetFields();
       setValueImageAddTour([""]);
    };
@@ -391,7 +392,7 @@ export default function TourManager() {
       });
    };
 
-   // Hàm xác nhận thêm / cập nhật khu vực
+   // Hàm xác nhận thêm / cập nhật lịch trình
    const onFinish = async (values) => {
       const processedValues = { ...values };
 
@@ -417,7 +418,6 @@ export default function TourManager() {
       }
 
       console.log("processedValues: ", processedValues);
-      
 
       setIsLoading(true);
       try {
@@ -2013,7 +2013,15 @@ export default function TourManager() {
                      },
                      {
                         validator: (_, value) => {
-                           if (
+                           if (currentDayDetail?.slot >= 50) {
+                              if (value && value < 50) {
+                                 return Promise.reject(
+                                    new Error(
+                                       "Số lượng chỗ phải lớn hơn hoặc bằng 50!"
+                                    )
+                                 );
+                              }
+                           } else if (
                               value &&
                               value < (currentDayDetail?.slot || 50)
                            ) {
@@ -2032,7 +2040,11 @@ export default function TourManager() {
                >
                   <InputNumber
                      className="flex left-3"
-                     min={currentDayDetail?.slot || 50}
+                     min={
+                        currentDayDetail?.slot >= 50
+                           ? 50
+                           : currentDayDetail?.slot || 50
+                     }
                      max={200}
                      style={{ width: "63%" }}
                   />

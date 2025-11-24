@@ -2,10 +2,10 @@ import baseURL from "@/api/instance";
 import { message } from "antd";
 
 // ========== Admin User Service ==========
-// const getAllUsers = async () => {
-//    const response = await baseURL.get("/admin/users");
-//    return response;
-// };
+const getAllUsersNotFilter = async () => {
+   const response = await baseURL.get("/admin/users/findAllNotFilter");
+   return response;
+};
 
 const getAllUsers = async (
    search,
@@ -121,6 +121,7 @@ const sendPasswordEmailOrInfoEmail = async (email) => {
 };
 
 export {
+   getAllUsersNotFilter,
    getAllUsers,
    getAllRoleName,
    createUser,

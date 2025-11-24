@@ -638,6 +638,23 @@ public Tours saveImages(TourRequestDTO tourRequestDTO, Long tourId) throws Custo
         dayDetailRepository.save(dayDetail);
     }
 
+//  Thêm slot nếu customer bên booking bị xóa
+    @Override
+    public void addSlot(Long dayDetailId, Long slot) throws CustomException {
+        DayDetails dayDetail = dayDetailRepository.findById(dayDetailId)
+                .orElseThrow(() -> new CustomException("Không tìm thấy Chi tiết Ngày có Id là: " + dayDetailId));
+        // 2. Kiểm tra tính hợp lệ của slot cần thêm
+        if (slot <= 0) {
+            throw new CustomException("Số lượng slot thêm vào phải lớn hơn 0.");
+        }
+
+        // 3. Cộng slot
+        // Thêm slot (trả lại chỗ trống)
+        dayDetail.setSlot(dayDetail.getSlot() + slot);
+
+        // 4. Lưu lại
+        dayDetailRepository.save(dayDetail);
+    }
 
 
     // Hàm định dạng ngày tháng theo yêu cầu

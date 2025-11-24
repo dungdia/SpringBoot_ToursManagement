@@ -291,7 +291,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
     @PutMapping("/dayDetails/deductSlots/{dayDetailId}/{quantity}")
     public ResponseEntity<?> deductSlots(
             @PathVariable Long dayDetailId,
@@ -300,6 +300,20 @@ public class ATourController {
         try {
             tourService.deductSlots(dayDetailId, quantity);
             return ResponseEntity.ok().body("Đã trừ số lượng slot thành công.");
+        } catch (CustomException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
+    @PutMapping("/dayDetails/addSlot/{dayDetailId}/{quantity}")
+    public ResponseEntity<?> addSlot(
+            @PathVariable Long dayDetailId,
+            @PathVariable Long quantity)
+    {
+        try {
+            tourService.addSlot(dayDetailId, quantity);
+            return ResponseEntity.ok().body("Đã thêm số lượng slot thành công.");
         } catch (CustomException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }

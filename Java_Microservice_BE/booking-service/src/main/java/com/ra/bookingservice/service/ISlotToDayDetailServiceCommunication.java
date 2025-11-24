@@ -8,4 +8,5 @@ import java.util.List;
 public interface ISlotToDayDetailServiceCommunication {
     DayDetailResponseDTO getDayDetailById(Long dayDetailId) throws CustomException;
     void deductSlot(Long dayDetailId, Long quantity) throws CustomException;
+    void addSlot(Long dayDetailId, Long quantity) throws CustomException;
 }

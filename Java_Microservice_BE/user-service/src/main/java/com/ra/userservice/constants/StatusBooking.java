@@ -1,6 +1,6 @@
-package com.ra.bookingservice.constants;
+package com.ra.userservice.constants;
 
-public enum Status {
+public enum StatusBooking {
     PENDING,
     CONFIRMED,
     WAITING_FOR_PAYMENT,

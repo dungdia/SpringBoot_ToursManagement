@@ -33,32 +33,32 @@ public class UserServiceImpl implements IUserService {
     private final IRoleRepository roleRepository;
     private final IOTPService otpService;
 
-//    @Override
-//    public List<UserResponse> findAll() {
-//        List<Users> users = userRepository.findAll();
-//        List<UserResponse> responseDTO = new ArrayList<>();
-//        for (Users user : users){
-//
-//            // XỬ LÝ GENDER: Kiểm tra null an toàn. Trả về null nếu DB null.
-//            String genderString = user.getGender() != null ? user.getGender().toString() : null;
-//
-//            // XỬ LÝ ROLES: Đảm bảo không null
-//            Set<Roles> userRoles = user.getRoles() != null ? user.getRoles() : new HashSet<>();
-//
-//            UserResponse userItem = UserResponse.builder()
-//                    .id(user.getId())
-//                    .fullName(user.getFullName())
-//                    .email(user.getEmail())
-//                    .phone(user.getPhone())
-//                    .gender(genderString)
-//                    .roles(userRoles)
-//                    .address(user.getAddress())
-//                    .status(user.getStatus())
-//                    .build();
-//            responseDTO.add(userItem);
-//        }
-//        return responseDTO;
-//    }
+    @Override
+    public List<UserResponse> findAllNotFilter() {
+        List<Users> users = userRepository.findAll();
+        List<UserResponse> responseDTO = new ArrayList<>();
+        for (Users user : users){
+
+            // XỬ LÝ GENDER: Kiểm tra null an toàn. Trả về null nếu DB null.
+            String genderString = user.getGender() != null ? user.getGender().toString() : null;
+
+            // XỬ LÝ ROLES: Đảm bảo không null
+            Set<Roles> userRoles = user.getRoles() != null ? user.getRoles() : new HashSet<>();
+
+            UserResponse userItem = UserResponse.builder()
+                    .id(user.getId())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .phone(user.getPhone())
+                    .gender(genderString)
+                    .roles(userRoles)
+                    .address(user.getAddress())
+                    .status(user.getStatus())
+                    .build();
+            responseDTO.add(userItem);
+        }
+        return responseDTO;
+    }
 
     @Override
     public Page<Users> findAll(Pageable pageable, String search, Boolean statusUser, Gender gender) {

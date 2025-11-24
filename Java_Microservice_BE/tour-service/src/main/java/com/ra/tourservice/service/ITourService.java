@@ -64,5 +64,6 @@ public interface ITourService {
 
 //    Trừ số lượng slots trong DayDetails
     void deductSlots(Long dayDetailId, Long slots) throws CustomException;
+    void addSlot(Long dayDetailId, Long slot) throws CustomException;
 
 }
