@@ -14,6 +14,7 @@ import {
    updateDayDetailByTourIdAndDayDetailId,
    updateImagesForTour,
    updateTour,
+   uploadImage_Cloudinary,
 } from "@/services/tourService";
 import {
    formatMoney,
@@ -24,6 +25,7 @@ import {
    MinusCircleOutlined,
    PlusOutlined,
    TagsOutlined,
+   UploadOutlined,
 } from "@ant-design/icons";
 import {
    Button,
@@ -39,6 +41,7 @@ import {
    Space,
    Table,
    Tag,
+   Upload,
 } from "antd";
 import { HttpStatusCode } from "axios";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -54,6 +57,7 @@ dayjs.extend(isSameOrAfter);
 dayjs.extend(advancedFormat);
 
 import { useDebounce } from "@/hooks/useDebounce";
+import FileInput from "@/components/fileInput/FileInput";
 
 export default function TourManager() {
    // Formatter cho ngày
@@ -77,6 +81,8 @@ export default function TourManager() {
    const [baseId, setBaseId] = useState(null);
 
    // Giao diện tour =======================================================================================================
+   // Cho giao diện upload image cloudinary
+
    // Cho form thêm / cập nhật tour
    const tourNameRef = useRef();
    const [formAddOrUpdateTour] = Form.useForm();
@@ -115,10 +121,6 @@ export default function TourManager() {
    const [formAddImages] = Form.useForm();
    const [isShowAddImageModal, setIsShowAddImageModal] = useState(false);
    const [isAddImageLoading, setIsAddImageLoading] = useState(false);
-   const [valueImageAddImage, setValueImageAddImage] = useState([""]);
-   const debounceValueImageAddImage = useDebounce(valueImageAddImage, 800);
-   // Theo dõi giá trị của trường 'images' (là một mảng)
-   const formImageUrlsForImage = Form.useWatch("images", formAddImages);
 
    // Cho form câp nhật ảnh
    const updateImage = useRef();
@@ -130,6 +132,10 @@ export default function TourManager() {
       valueImageUpdateImage,
       800
    );
+   const [
+      isUploadImageForUpdateImageLoading,
+      setIsUploadImageForUpdateImageLoading,
+   ] = useState(false);
 
    // Modal xóa hình ảnh
    const [baseImageId, setBaseImageId] = useState(null);
@@ -184,6 +190,65 @@ export default function TourManager() {
       useState(false);
 
    // ====================================================================================================================================
+   const [uploadLoadings, setUploadLoadings] = useState({});
+
+   // Hàm Upload Image trên cloudinary
+   const handleUploadImageCloudinary = async (fieldName) => {
+      // 1. Đặt loading cho field cụ thể
+      setUploadLoadings((prev) => ({ ...prev, [fieldName]: true }));
+
+      const fileToUpload = formAddOrUpdateTour.getFieldValue([
+         "file_selected",
+         fieldName,
+      ]);
+
+      if (!fileToUpload) {
+         message.error("Không tìm thấy file để upload.");
+         setUploadLoadings((prev) => ({ ...prev, [fieldName]: false }));
+         return;
+      }
+
+      try {
+         const formData = new FormData();
+         formData.append("files", fileToUpload); // Tên key 'files' phải khớp với API
+
+         const response = await uploadImage_Cloudinary(formData);
+
+         if (response && response.status === 200) {
+            const imageUrls = response.data;
+            const uploadedImageUrl = imageUrls?.[0]; // Lấy URL đầu tiên
+
+            if (uploadedImageUrl) {
+               // 3. Cập nhật Form.List chính (trường 'images') với URL
+               formAddOrUpdateTour.setFieldValue(
+                  ["images", fieldName],
+                  uploadedImageUrl
+               );
+
+               // 4. Xóa trường file tạm thời ('upload_ui_temp') để ẩn nút Tải ảnh
+               formAddOrUpdateTour.setFieldValue(
+                  ["file_selected", fieldName],
+                  null
+               );
+
+               message.success(`Upload ảnh "${fileToUpload.name}" thành công!`);
+            } else {
+               message.error("Upload thất bại, không nhận được URL.");
+            }
+         } else {
+            message.error(response?.message || "Lỗi khi upload lên máy chủ.");
+         }
+      } catch (error) {
+         message.error(
+            error.response?.data?.message ||
+               "Lỗi upload files. Vui lòng thử lại."
+         );
+      } finally {
+         // 5. Tắt loading cho field cụ thể
+         setUploadLoadings((prev) => ({ ...prev, [fieldName]: false })); // <--- SỬA TẠI ĐÂY
+      }
+   };
+
    const columns = [
       {
          title: "Tên chuyến đi",
@@ -321,15 +386,6 @@ export default function TourManager() {
       }
    }, [formImageUrlsForTour]);
 
-   // Đồng bộ Form Value vào state React (để phục vụ debounceValueImageAddImage)
-   useEffect(() => {
-      // Chỉ cập nhật state nếu formImageUrls tồn tại và là mảng
-      if (Array.isArray(formImageUrlsForImage)) {
-         // Form.List trả về mảng giá trị (string)
-         setValueImageAddImage(formImageUrlsForImage);
-      }
-   }, [formImageUrlsForImage]);
-
    // Mong muốn khi sử dụng custome hook useDebounce (delay khi search)
    const debounceSearch = useDebounce(searchValue, 800);
 
@@ -377,6 +433,7 @@ export default function TourManager() {
    // Ẩn modal thêm
    const handleCloseModal = () => {
       setIsShowModal(false);
+      setBaseId(null);
       formAddOrUpdateTour.resetFields();
       setValueImageAddTour([""]);
    };
@@ -391,7 +448,7 @@ export default function TourManager() {
       });
    };
 
-   // Hàm xác nhận thêm / cập nhật khu vực
+   // Hàm xác nhận thêm / cập nhật lịch trình
    const onFinish = async (values) => {
       const processedValues = { ...values };
 
@@ -417,7 +474,6 @@ export default function TourManager() {
       }
 
       console.log("processedValues: ", processedValues);
-      
 
       setIsLoading(true);
       try {
@@ -515,6 +571,115 @@ export default function TourManager() {
    // GIAO DIỆN XEM HÌNH ẢNH
    // =====================================================================================================================
 
+   // Hàm Upload Image khi thêm ảnh trên cloudinary
+   const handleUploadImageCloudinaryAddImage = async (fieldName) => {
+      // 1. Đặt loading cho field cụ thể
+      setUploadLoadings((prev) => ({ ...prev, [fieldName]: true }));
+
+      const fileToUpload = formAddImages.getFieldValue([
+         "file_selected",
+         fieldName,
+      ]);
+
+      if (!fileToUpload) {
+         message.error("Không tìm thấy file để upload.");
+         setUploadLoadings((prev) => ({ ...prev, [fieldName]: false }));
+         return;
+      }
+
+      try {
+         const formData = new FormData();
+         formData.append("files", fileToUpload); // Tên key 'files' phải khớp với API
+
+         const response = await uploadImage_Cloudinary(formData);
+
+         if (response && response.status === 200) {
+            const imageUrls = response.data;
+            const uploadedImageUrl = imageUrls?.[0]; // Lấy URL đầu tiên
+
+            if (uploadedImageUrl) {
+               // 3. Cập nhật Form.List chính (trường 'images') với URL
+               formAddImages.setFieldValue(
+                  ["images", fieldName],
+                  uploadedImageUrl
+               );
+
+               // 4. Xóa trường file tạm thời ('upload_ui_temp') để ẩn nút Tải ảnh
+               formAddImages.setFieldValue(["file_selected", fieldName], null);
+
+               message.success(`Upload ảnh "${fileToUpload.name}" thành công!`);
+            } else {
+               message.error("Upload thất bại, không nhận được URL.");
+            }
+         } else {
+            message.error(response?.message || "Lỗi khi upload lên máy chủ.");
+         }
+      } catch (error) {
+         message.error(
+            error.response?.data?.message ||
+               "Lỗi upload files. Vui lòng thử lại."
+         );
+      } finally {
+         // 5. Tắt loading cho field cụ thể
+         setUploadLoadings((prev) => ({ ...prev, [fieldName]: false })); // <--- SỬA TẠI ĐÂY
+      }
+   };
+
+   // Hàm Upload Image khi cập nhật ảnh trên cloudinary
+   const handleUploadImageCloudinaryUpdateImage = async () => {
+      // Vì đây là Form cập nhật 1 ảnh duy nhất, ta không cần dùng fieldName để quản lý loading nữa.
+      // 1. Đặt loading BẬT (true)
+      setIsUploadImageForUpdateImageLoading(true);
+
+      // Lưu ý: Nếu bạn đã sửa Form theo hướng dẫn trước, trường file_selected không còn là mảng con nữa,
+      // mà là trường đơn: formUpdateImage.getFieldValue("file_selected").
+      const fileToUpload = formUpdateImage.getFieldValue("file_selected");
+      console.log("fileToUpload ", fileToUpload);
+
+      if (!fileToUpload) {
+         message.error("Không tìm thấy file để upload.");
+         setIsUploadImageForUpdateImageLoading(false); // Tắt loading
+         return;
+      }
+
+      try {
+         const formData = new FormData();
+         formData.append("files", fileToUpload?.file_selected);
+
+         const response = await uploadImage_Cloudinary(formData);
+
+         if (response && response.status === 200) {
+            const uploadedImageUrl = response.data?.[0];
+            console.log("uploadedImageUrl ", uploadedImageUrl);
+            
+
+            if (uploadedImageUrl) {
+               // Cập nhật vào trường chính (image) và xóa trường file tạm
+               formUpdateImage.setFieldValue("image", uploadedImageUrl);
+               setValueImageUpdateImage(uploadedImageUrl)
+               formUpdateImage.setFieldValue("file_selected", null);
+
+               // Buộc re-render nút Tải ảnh
+               formUpdateImage.validateFields(["image", "file_selected"]);
+
+               message.success(`Upload ảnh "${fileToUpload?.file_selected.name}" thành công!`);
+            } else {
+               message.error("Upload thất bại, không nhận được URL.");
+            }
+         } else {
+            message.error(response?.message || "Lỗi khi upload lên máy chủ.");
+         }
+      } catch (error) {
+         console.error("Upload Error Details:", error);
+         message.error(
+            error.response?.data || "Lỗi upload files. Vui lòng thử lại."
+         );
+      } finally {
+         // 5. Tắt loading (false) sau khi upload xong (dù thành công hay thất bại)
+         setIsUploadImageForUpdateImageLoading(false);
+      }
+   };
+
    // Hiển thị modal xem hình ảnh
    const handleShowImagesURLs = async (tourId) => {
       setBaseId(tourId);
@@ -540,8 +705,6 @@ export default function TourManager() {
                pageIndex,
                imagePageSize
             );
-            console.log(response);
-
             setImagesURLs(response.data.content);
             setImageTotalElements(response.data.totalElements);
          } catch (error) {
@@ -633,11 +796,11 @@ export default function TourManager() {
    const handleCloseAddImageModal = () => {
       setIsShowAddImageModal(false);
       formAddImages.resetFields();
-      setValueImageAddImage([""]);
    };
 
    // Xác nhận thêm hình ảnh
    const onFinishAddImages = async (values) => {
+      console.log(values);
       try {
          setIsAddImageLoading(true);
          const response = await createImagesForTour(baseId, values);
@@ -2013,7 +2176,15 @@ export default function TourManager() {
                      },
                      {
                         validator: (_, value) => {
-                           if (
+                           if (currentDayDetail?.slot >= 50) {
+                              if (value && value < 50) {
+                                 return Promise.reject(
+                                    new Error(
+                                       "Số lượng chỗ phải lớn hơn hoặc bằng 50!"
+                                    )
+                                 );
+                              }
+                           } else if (
                               value &&
                               value < (currentDayDetail?.slot || 50)
                            ) {
@@ -2032,7 +2203,11 @@ export default function TourManager() {
                >
                   <InputNumber
                      className="flex left-3"
-                     min={currentDayDetail?.slot || 50}
+                     min={
+                        currentDayDetail?.slot >= 50
+                           ? 50
+                           : currentDayDetail?.slot || 50
+                     }
                      max={200}
                      style={{ width: "63%" }}
                   />
@@ -2202,11 +2377,10 @@ export default function TourManager() {
                   name="images"
                   rules={[
                      {
-                        // Đảm bảo ít nhất một hình ảnh được nhập
                         validator: async (_, images) => {
                            if (!images || images.length === 0) {
                               return message.error(
-                                 "Vui lòng thêm ít nhất một hình ảnh!"
+                                 "Vui lòng thêm ít nhất một hình ảnh và đảm bảo tất cả đã được upload!"
                               );
                            }
                            return Promise.resolve();
@@ -2217,83 +2391,280 @@ export default function TourManager() {
                   {(fields, { add, remove }) => (
                      <>
                         <label
-                           style={{ display: "block", marginBottom: "8px" }}
+                           style={{
+                              display: "block",
+                              marginBottom: "8px",
+                              fontWeight: "bold",
+                           }}
                         >
-                           Hình ảnh (URLs)
+                           🖼️ Hình ảnh (URLs)
                         </label>
 
-                        {fields.map((field, index) => {
-                           // Tách key ra, giữ lại các thuộc tính còn lại
+                        {fields.map((field) => {
                            const { key, ...restField } = field;
-                           console.log(fields);
 
                            return (
                               <Space
-                                 key={key} // KEY đúng chỗ
-                                 style={{ display: "flex", marginBottom: 8 }}
+                                 key={key}
+                                 style={{
+                                    display: "flex",
+                                    marginBottom: 8,
+                                    padding: 8,
+                                    border: "1px solid #d9d9d9",
+                                    borderRadius: "6px",
+                                 }}
                                  align="start"
                               >
                                  <div
-                                    className="flex items-center justify-center gap-4 p-3 border rounded-md shadow-sm"
-                                    style={{ flexGrow: 1 }}
+                                    style={{
+                                       flexGrow: 1,
+                                       display: "flex",
+                                       alignItems: "center",
+                                       gap: "16px",
+                                    }}
                                  >
+                                    {/* 1. INPUT ẨN LƯU TRỮ URL thật */}
                                     <Form.Item
                                        {...restField}
+                                       name={[field.name]}
                                        rules={[
                                           {
-                                             required: true,
-                                             message:
-                                                "URL hình ảnh không được trống",
+                                             validator: (_, value) => {
+                                                const fileSelected =
+                                                   formAddImages.getFieldValue([
+                                                      "file_selected",
+                                                      field.name,
+                                                   ]);
+
+                                                // Nếu đã chọn file mà chưa upload → báo lỗi
+                                                if (fileSelected && !value) {
+                                                   return message.error(
+                                                      "Bạn đã chọn ảnh – vui lòng nhấn 'Tải ảnh' trước khi lưu!"
+                                                   );
+                                                }
+
+                                                return Promise.resolve();
+                                             },
+                                          },
+                                       ]}
+                                       style={{ display: "none", margin: 0 }}
+                                    >
+                                       <Input />
+                                    </Form.Item>
+
+                                    {/* 2. Preview ảnh */}
+                                    <Form.Item
+                                       noStyle
+                                       shouldUpdate={(prev, cur) =>
+                                          prev.images?.[field.name] !==
+                                          cur.images?.[field.name]
+                                       }
+                                    >
+                                       {({ getFieldValue }) => {
+                                          const currentUrl = getFieldValue([
+                                             "images",
+                                             field.name,
+                                          ]);
+
+                                          if (!currentUrl) {
+                                             return (
+                                                <div
+                                                   style={{
+                                                      width: 100,
+                                                      height: 100,
+                                                      border: "1px dashed #ccc",
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      justifyContent: "center",
+                                                      fontSize: 10,
+                                                      color: "#999",
+                                                      flexShrink: 0,
+                                                      borderRadius: "4px",
+                                                   }}
+                                                >
+                                                   Chưa có ảnh
+                                                </div>
+                                             );
+                                          }
+
+                                          return (
+                                             <Image
+                                                width={100}
+                                                height={100}
+                                                preview={false}
+                                                style={{
+                                                   objectFit: "cover",
+                                                   flexShrink: 0,
+                                                   borderRadius: "4px",
+                                                }}
+                                                src={currentUrl}
+                                             />
+                                          );
+                                       }}
+                                    </Form.Item>
+
+                                    {/* 3. Input file chọn ảnh */}
+                                    <Form.Item
+                                       name={["file_selected", field.name]} // Tên trường TẠM THỜI: 'file_selected'
+                                       rules={[
+                                          {
+                                             // Sử dụng validator để kiểm tra ràng buộc
+                                             validator: async (
+                                                _,
+                                                fileSelected
+                                             ) => {
+                                                const currentUrl =
+                                                   formAddImages.getFieldValue([
+                                                      "images",
+                                                      field.name,
+                                                   ]);
+
+                                                // 1. Nếu đã có URL (đã upload), bỏ qua kiểm tra field tạm thời.
+                                                if (currentUrl) {
+                                                   return Promise.resolve();
+                                                }
+
+                                                // 2. Nếu chưa có URL, bắt buộc phải có File Object đã chọn.
+                                                if (
+                                                   !fileSelected ||
+                                                   !(
+                                                      fileSelected instanceof
+                                                      File
+                                                   )
+                                                ) {
+                                                   // Nếu không có file được chọn và chưa có URL, báo lỗi.
+                                                   return Promise.reject(
+                                                      new Error(
+                                                         "Vui lòng chọn một file ảnh."
+                                                      )
+                                                   );
+                                                }
+
+                                                // 3. Nếu có File Object và chưa có URL (tình trạng sẵn sàng upload), OK.
+                                                return Promise.resolve();
+                                             },
                                           },
                                        ]}
                                        style={{ flexGrow: 1, marginBottom: 0 }}
                                     >
-                                       <Input
-                                          className="w-full"
-                                          placeholder={`URL hình ảnh ${
-                                             index + 1
-                                          }`}
+                                       <FileInput
+                                          fieldName={field.name}
+                                          form={formAddImages}
                                        />
                                     </Form.Item>
 
-                                    <Image
-                                       width={100}
-                                       height={100}
-                                       preview={false}
-                                       style={{ objectFit: "cover" }}
-                                       src={debounceValueImageAddImage[index]}
-                                    />
+                                    {/* 4. Nút tải ảnh */}
+                                    <Form.Item
+                                       noStyle
+                                       shouldUpdate={(prev, cur) =>
+                                          prev.images?.[field.name] !==
+                                             cur.images?.[field.name] ||
+                                          prev.file_selected?.[field.name] !==
+                                             cur.file_selected?.[field.name]
+                                       }
+                                    >
+                                       {({ getFieldValue }) => {
+                                          const currentUrl = getFieldValue([
+                                             "images",
+                                             field.name,
+                                          ]);
+                                          const fileSelected = getFieldValue([
+                                             "file_selected",
+                                             field.name,
+                                          ]);
+
+                                          const isButtonVisible =
+                                             !!fileSelected;
+
+                                          if (!isButtonVisible) return null;
+
+                                          return (
+                                             <Button
+                                                size="large"
+                                                type="primary"
+                                                onClick={() =>
+                                                   handleUploadImageCloudinaryAddImage(
+                                                      field.name
+                                                   )
+                                                }
+                                                loading={
+                                                   uploadLoadings[field.name]
+                                                }
+                                                style={{
+                                                   flexShrink: 0,
+                                                   height: 32,
+                                                }}
+                                             >
+                                                Tải ảnh
+                                             </Button>
+                                          );
+                                       }}
+                                    </Form.Item>
                                  </div>
 
-                                 {/* Nút Xóa */}
                                  <MinusCircleOutlined
                                     onClick={() => remove(field.name)}
-                                    style={{
-                                       marginTop: "8px",
-                                       cursor: "pointer",
-                                    }}
                                  />
                               </Space>
                            );
                         })}
 
-                        {/* Nút thêm */}
-                        <Form.Item>
-                           <Button
-                              type="dashed"
-                              onClick={() => add()}
-                              block
-                              icon={<PlusOutlined />}
-                           >
-                              Thêm Hình ảnh
-                           </Button>
+                        <Form.Item
+                           noStyle
+                           shouldUpdate={(prev, cur) =>
+                              prev.images !== cur.images
+                           }
+                        >
+                           {({ getFieldValue }) => {
+                              // Lấy toàn bộ mảng URL ảnh đã được lưu
+                              const images = getFieldValue("images") || [];
+
+                              // Kiểm tra xem có bất kỳ trường nào trong mảng 'images' đang rỗng (chưa có URL) hay không.
+                              const hasUnuploadedField = images.some(
+                                 (url) => !url
+                              );
+
+                              return (
+                                 <Button
+                                    type="dashed"
+                                    onClick={() => {
+                                       // Thêm trường mới
+                                       add();
+
+                                       // Thiết lập giá trị mặc định cho trường mới
+                                       const currentFields =
+                                          getFieldValue("images") || [];
+                                       const addedIndex =
+                                          currentFields.length - 1;
+
+                                       // Đảm bảo trường ảnh mới được khởi tạo là rỗng
+                                       formAddImages.setFieldValue(
+                                          ["images", addedIndex],
+                                          ""
+                                       );
+                                       // Đảm bảo trường file tạm thời mới được khởi tạo là null
+                                       formAddImages.setFieldValue(
+                                          ["file_selected", addedIndex],
+                                          null
+                                       );
+                                    }}
+                                    block
+                                    icon={<PlusOutlined />}
+                                    style={{ marginTop: 8 }}
+                                    // VÔ HIỆU HÓA NÚT KHI CÓ TRƯỜNG CHƯA ĐƯỢC UPLOAD
+                                    disabled={hasUnuploadedField}
+                                 >
+                                    Thêm Hình ảnh
+                                 </Button>
+                              );
+                           }}
                         </Form.Item>
                      </>
                   )}
                </Form.List>
 
                <Form.Item>
-                  <div className="flex items-center justify-end gap-3">
+                  <div className="flex items-center justify-end mt-3 gap-3">
                      <Button
                         onClick={handleCloseAddImageModal}
                         color="danger"
@@ -2335,24 +2706,76 @@ export default function TourManager() {
                requiredMark={false}
             >
                <div className="flex items-center justify-between gap-4 mt-5">
-                  <Form.Item
-                     name="image"
-                     rules={[
-                        {
-                           required: true,
-                           message: "URL hình ảnh không được trống",
-                        },
-                     ]}
-                  >
-                     <Input
-                        onChange={(e) =>
-                           setValueImageUpdateImage(e.target.value)
-                        }
-                        ref={updateImage}
-                        className="w-full"
-                        placeholder={`URL hình ảnh`}
-                     />
-                  </Form.Item>
+                  <div className="flex-col items-center gap-2">
+                     {/* Đẩy đường dẫn ảnh vào ô input nếu chưa chọn ảnh từ máy */}
+                     <Form.Item
+                        name="image"
+                        rules={[
+                           {
+                              required: true,
+                              message: "URL hình ảnh không được trống",
+                           },
+                        ]}
+                     >
+                        <Input
+                           onChange={(e) =>
+                              setValueImageUpdateImage(e.target.value)
+                           }
+                           ref={updateImage}
+                           className="w-full"
+                           placeholder={`URL hình ảnh`}
+                        />
+                     </Form.Item>
+
+                     {/* 2. Trường File Object Tạm thời (Dùng FileInput) */}
+                     <div className="flex items-center gap-2 w-full">
+                        <Form.Item
+                           name="file_selected" // <-- TRƯỜNG FILE OBJECT TẠM
+                           style={{ flexGrow: 1, marginBottom: 0 }}
+                        >
+                           {/* Lưu ý: FileInput cần được truyền form và fieldName/name tương ứng */}
+                           {/* Ví dụ: Bạn có thể cần truyền form={formUpdateImage} vào FileInput */}
+                           <FileInput
+                              // Bạn cần đảm bảo FileInput đã được sửa để nhận props 'value' và 'onChange'
+                              // như chúng ta đã làm ở các câu hỏi trước.
+                              form={formUpdateImage}
+                              fieldName="file_selected" // Đây là tên trường trong Form.Item (prop name)
+                           />
+                        </Form.Item>
+
+                        {/* 3. NÚT TẢI ẢNH (Chỉ hiện khi có file mới) */}
+                        <Form.Item
+                           noStyle
+                           shouldUpdate={(prev, cur) =>
+                              prev.file_selected !== cur.file_selected
+                           }
+                        >
+                           {({ getFieldValue }) => {
+                              const fileSelected =
+                                 getFieldValue("file_selected");
+
+                              // Nút Tải ảnh chỉ hiển thị khi có File Object được chọn
+                              const isButtonVisible = !!fileSelected;
+
+                              if (!isButtonVisible) {
+                                 return null;
+                              }
+
+                              return (
+                                 <Button
+                                    type="primary"
+                                    onClick={
+                                       handleUploadImageCloudinaryUpdateImage
+                                    } // <-- SỬA HÀM UPLOAD
+                                    loading={isUploadImageForUpdateImageLoading} // Cần quản lý state loading
+                                 >
+                                    Tải ảnh
+                                 </Button>
+                              );
+                           }}
+                        </Form.Item>
+                     </div>
+                  </div>
                   <Form.Item>
                      <Image
                         style={{ objectFit: "cover" }}
@@ -2494,17 +2917,15 @@ export default function TourManager() {
 
                {baseId === null && (
                   <>
-                     {" "}
                      {/* Hình ảnh */}
                      <Form.List
                         name="images"
                         rules={[
                            {
-                              // Đảm bảo ít nhất một hình ảnh được nhập
                               validator: async (_, images) => {
                                  if (!images || images.length === 0) {
                                     return message.error(
-                                       "Vui lòng thêm ít nhất một hình ảnh!"
+                                       "Vui lòng thêm ít nhất một hình ảnh và đảm bảo tất cả đã được upload!"
                                     );
                                  }
                                  return Promise.resolve();
@@ -2523,31 +2944,166 @@ export default function TourManager() {
                                  Hình ảnh (URLs)
                               </label>
 
-                              {fields.map((field, index) => {
-                                 // Tách key ra, giữ lại các thuộc tính còn lại
+                              {fields.map((field) => {
                                  const { key, ...restField } = field;
-                                 console.log(fields);
 
                                  return (
                                     <Space
-                                       key={key} // KEY đúng chỗ
+                                       key={key}
                                        style={{
                                           display: "flex",
                                           marginBottom: 8,
+                                          padding: 8,
+                                          border: "1px solid #d9d9d9",
+                                          borderRadius: "6px",
                                        }}
                                        align="start"
                                     >
                                        <div
-                                          className="flex items-center justify-center gap-4 p-3 border rounded-md shadow-sm"
-                                          style={{ flexGrow: 1 }}
+                                          style={{
+                                             flexGrow: 1,
+                                             display: "flex",
+                                             alignItems: "center",
+                                             gap: "16px",
+                                          }}
                                        >
+                                          {/* 1. INPUT ẨN LƯU TRỮ URL thật */}
                                           <Form.Item
                                              {...restField}
+                                             name={[field.name]}
                                              rules={[
                                                 {
-                                                   required: true,
-                                                   message:
-                                                      "URL hình ảnh không được trống",
+                                                   validator: (_, value) => {
+                                                      const fileSelected =
+                                                         formAddOrUpdateTour.getFieldValue(
+                                                            [
+                                                               "file_selected",
+                                                               field.name,
+                                                            ]
+                                                         );
+
+                                                      // Nếu đã chọn file mà chưa upload → báo lỗi
+                                                      if (
+                                                         fileSelected &&
+                                                         !value
+                                                      ) {
+                                                         return message.error(
+                                                            "Bạn đã chọn ảnh – vui lòng nhấn 'Tải ảnh' trước khi lưu!"
+                                                         );
+                                                      }
+
+                                                      return Promise.resolve();
+                                                   },
+                                                },
+                                             ]}
+                                             style={{
+                                                display: "none",
+                                                margin: 0,
+                                             }}
+                                          >
+                                             <Input />
+                                          </Form.Item>
+
+                                          {/* 2. Preview ảnh */}
+                                          <Form.Item
+                                             noStyle
+                                             shouldUpdate={(prev, cur) =>
+                                                prev.images?.[field.name] !==
+                                                cur.images?.[field.name]
+                                             }
+                                          >
+                                             {({ getFieldValue }) => {
+                                                const currentUrl =
+                                                   getFieldValue([
+                                                      "images",
+                                                      field.name,
+                                                   ]);
+
+                                                if (!currentUrl) {
+                                                   return (
+                                                      <div
+                                                         style={{
+                                                            width: 100,
+                                                            height: 100,
+                                                            border:
+                                                               "1px dashed #ccc",
+                                                            display: "flex",
+                                                            alignItems:
+                                                               "center",
+                                                            justifyContent:
+                                                               "center",
+                                                            fontSize: 10,
+                                                            color: "#999",
+                                                            flexShrink: 0,
+                                                            borderRadius: "4px",
+                                                         }}
+                                                      >
+                                                         Chưa có ảnh
+                                                      </div>
+                                                   );
+                                                }
+
+                                                return (
+                                                   <Image
+                                                      width={100}
+                                                      height={100}
+                                                      preview={false}
+                                                      style={{
+                                                         objectFit: "cover",
+                                                         flexShrink: 0,
+                                                         borderRadius: "4px",
+                                                      }}
+                                                      src={currentUrl}
+                                                   />
+                                                );
+                                             }}
+                                          </Form.Item>
+
+                                          {/* 3. Input file chọn ảnh */}
+                                          <Form.Item
+                                             name={[
+                                                "file_selected",
+                                                field.name,
+                                             ]} // Tên trường TẠM THỜI: 'file_selected'
+                                             rules={[
+                                                {
+                                                   // Sử dụng validator để kiểm tra ràng buộc
+                                                   validator: async (
+                                                      _,
+                                                      fileSelected
+                                                   ) => {
+                                                      const currentUrl =
+                                                         formAddOrUpdateTour.getFieldValue(
+                                                            [
+                                                               "images",
+                                                               field.name,
+                                                            ]
+                                                         );
+
+                                                      // 1. Nếu đã có URL (đã upload), bỏ qua kiểm tra field tạm thời.
+                                                      if (currentUrl) {
+                                                         return Promise.resolve();
+                                                      }
+
+                                                      // 2. Nếu chưa có URL, bắt buộc phải có File Object đã chọn.
+                                                      if (
+                                                         !fileSelected ||
+                                                         !(
+                                                            fileSelected instanceof
+                                                            File
+                                                         )
+                                                      ) {
+                                                         // Nếu không có file được chọn và chưa có URL, báo lỗi.
+                                                         return Promise.reject(
+                                                            new Error(
+                                                               "Vui lòng chọn một file ảnh."
+                                                            )
+                                                         );
+                                                      }
+
+                                                      // 3. Nếu có File Object và chưa có URL (tình trạng sẵn sàng upload), OK.
+                                                      return Promise.resolve();
+                                                   },
                                                 },
                                              ]}
                                              style={{
@@ -2555,51 +3111,132 @@ export default function TourManager() {
                                                 marginBottom: 0,
                                              }}
                                           >
-                                             <Input
-                                                className="w-full"
-                                                placeholder={`URL hình ảnh ${
-                                                   index + 1
-                                                }`}
+                                             <FileInput
+                                                fieldName={field.name}
+                                                form={formAddOrUpdateTour}
                                              />
                                           </Form.Item>
 
-                                          <Image
-                                             width={100}
-                                             height={100}
-                                             preview={false}
-                                             style={{ objectFit: "cover" }}
-                                             src={
-                                                debounceValueImageAddTour[index]
+                                          {/* 4. Nút tải ảnh */}
+                                          <Form.Item
+                                             noStyle
+                                             shouldUpdate={(prev, cur) =>
+                                                prev.images?.[field.name] !==
+                                                   cur.images?.[field.name] ||
+                                                prev.file_selected?.[
+                                                   field.name
+                                                ] !==
+                                                   cur.file_selected?.[
+                                                      field.name
+                                                   ]
                                              }
-                                          />
+                                          >
+                                             {({ getFieldValue }) => {
+                                                const currentUrl =
+                                                   getFieldValue([
+                                                      "images",
+                                                      field.name,
+                                                   ]);
+                                                const fileSelected =
+                                                   getFieldValue([
+                                                      "file_selected",
+                                                      field.name,
+                                                   ]);
+
+                                                const isButtonVisible =
+                                                   !!fileSelected;
+
+                                                if (!isButtonVisible)
+                                                   return null;
+
+                                                return (
+                                                   <Button
+                                                      size="large"
+                                                      type="primary"
+                                                      onClick={() =>
+                                                         handleUploadImageCloudinary(
+                                                            field.name
+                                                         )
+                                                      }
+                                                      loading={
+                                                         uploadLoadings[
+                                                            field.name
+                                                         ]
+                                                      }
+                                                      style={{
+                                                         flexShrink: 0,
+                                                         height: 32,
+                                                      }}
+                                                   >
+                                                      Tải ảnh
+                                                   </Button>
+                                                );
+                                             }}
+                                          </Form.Item>
                                        </div>
 
-                                       {/* Nút Xóa */}
                                        <MinusCircleOutlined
                                           onClick={() => remove(field.name)}
-                                          style={{
-                                             marginTop: "8px",
-                                             cursor: "pointer",
-                                          }}
                                        />
                                     </Space>
                                  );
                               })}
 
-                              {/* Nút thêm */}
-                              <Form.Item>
-                                 <Button
-                                    type="dashed"
-                                    onClick={() => add()}
-                                    block
-                                    icon={<PlusOutlined />}
-                                 >
-                                    Thêm Hình ảnh
-                                 </Button>
+                              <Form.Item
+                                 noStyle
+                                 shouldUpdate={(prev, cur) =>
+                                    prev.images !== cur.images
+                                 }
+                              >
+                                 {({ getFieldValue }) => {
+                                    // Lấy toàn bộ mảng URL ảnh đã được lưu
+                                    const images =
+                                       getFieldValue("images") || [];
+
+                                    // Kiểm tra xem có bất kỳ trường nào trong mảng 'images' đang rỗng (chưa có URL) hay không.
+                                    const hasUnuploadedField = images.some(
+                                       (url) => !url
+                                    );
+
+                                    return (
+                                       <Button
+                                          type="dashed"
+                                          onClick={() => {
+                                             // Thêm trường mới
+                                             add();
+
+                                             // Thiết lập giá trị mặc định cho trường mới
+                                             const currentFields =
+                                                getFieldValue("images") || [];
+                                             const addedIndex =
+                                                currentFields.length - 1;
+
+                                             // Đảm bảo trường ảnh mới được khởi tạo là rỗng
+                                             formAddOrUpdateTour.setFieldValue(
+                                                ["images", addedIndex],
+                                                ""
+                                             );
+                                             // Đảm bảo trường file tạm thời mới được khởi tạo là null
+                                             formAddOrUpdateTour.setFieldValue(
+                                                ["file_selected", addedIndex],
+                                                null
+                                             );
+                                          }}
+                                          block
+                                          icon={<PlusOutlined />}
+                                          style={{ marginTop: 8 }}
+                                          // VÔ HIỆU HÓA NÚT KHI CÓ TRƯỜNG CHƯA ĐƯỢC UPLOAD
+                                          disabled={hasUnuploadedField}
+                                       >
+                                          Thêm Hình ảnh
+                                       </Button>
+                                    );
+                                 }}
                               </Form.Item>
                            </>
                         )}
                      </Form.List>
+
                      {/* Chi tiết ngày */}
                      <Form.List
                         name="dayDetails"
@@ -2619,6 +3256,15 @@ export default function TourManager() {
                      >
                         {(fields, { add, remove }) => (
                            <>
+                              <label
+                                 style={{
+                                    marginTop: "8px",
+                                    display: "block",
+                                    marginBottom: "15px",
+                                 }}
+                              >
+                                 Chi tiết chuyến đi
+                              </label>
                               {/* Lặp qua các trường hiện có */}
                               {fields.map(({ key, name, ...restField }) => (
                                  <Space

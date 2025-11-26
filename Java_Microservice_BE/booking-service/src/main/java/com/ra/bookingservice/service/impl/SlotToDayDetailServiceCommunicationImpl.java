@@ -36,4 +36,14 @@ public class SlotToDayDetailServiceCommunicationImpl implements ISlotToDayDetail
             throw new CustomException("Lỗi khi khấu trừ slots trong Day-Detail của Tour Service: " + ex.getMessage());
         }
     }
+
+    @Override
+    public void addSlot(Long dayDetailId, Long quantity) throws CustomException {
+        String url = DAY_DETAIL_IN_TOUR_SERVICE_URL + "admin/tours/dayDetails/addSlot/" + dayDetailId + "/" + quantity;
+        try {
+            restTemplate.put(url, null);
+        } catch (Exception ex) {
+            throw new CustomException("Lỗi khi tăng slots trong Day-Detail của Tour Service: " + ex.getMessage());
+        }
+    }
 }

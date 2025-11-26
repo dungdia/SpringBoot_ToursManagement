@@ -266,7 +266,7 @@ export default function InfoUser() {
             message.error(
                error.response.data.phone ||
                   error.response.data.email ||
-                  "Dữ liệu không hợp lệ. Vui lòng kiểm tra lại."
+                  error.response.data
             );
          } else {
             message.error("Đã xảy ra lỗi không xác định.");
@@ -337,7 +337,8 @@ export default function InfoUser() {
                   name="phone"
                   rules={[
                      {
-                        pattern: /^(0)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-5|8|9]|9[0-4|6-9])[0-9]{7}$/,
+                        pattern:
+                           /^(0)(3[2-9]|5[6|8|9]|7[0|6-9]|8[1-5|8|9]|9[0-4|6-9])[0-9]{7}$/,
                         message: "Số điện thoại không hợp lệ",
                      },
                      {

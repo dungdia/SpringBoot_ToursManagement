@@ -13,7 +13,7 @@ import java.util.List;
 
 public interface IUserService {
     Page<Users> findAll(Pageable pageable, String search, Boolean statusUser, Gender gender);
-//    List<UserResponse> findAll();
+    List<UserResponse> findAllNotFilter();
     Users findById(Long id) throws CustomException;
     Users save(UserRequest userRequest) throws CustomException;
     Users update(UserUpdateRequest userUpdateRequest,Long updateId) throws CustomException;

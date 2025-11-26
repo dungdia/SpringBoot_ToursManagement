@@ -4,6 +4,8 @@ import com.ra.userservice.constants.Gender;
 import com.ra.userservice.exception.CustomException;
 import com.ra.userservice.model.dto.req.UserRequest;
 import com.ra.userservice.model.dto.req.UserUpdateRequest;
+import com.ra.userservice.model.dto.resp.UserResponse;
+import com.ra.userservice.model.dto.resp.booking.BookingInfoResponseDTO;
 import com.ra.userservice.model.entity.Users;
 import com.ra.userservice.repository.IUserRepository;
 import com.ra.userservice.service.IOTPService;
@@ -19,10 +21,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/admin/users")
@@ -33,11 +33,11 @@ public class AUserController {
     private  final IUserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-//    @GetMapping
-//    public ResponseEntity<List<UserResponse>> findAll(){
-//        List<UserResponse> userResponses = userService.findAll();
-//        return ResponseEntity.ok().body(userResponses);
-//    }
+    @GetMapping("findAllNotFilter")
+    public ResponseEntity<List<UserResponse>> findAllNotFilter(){
+        List<UserResponse> userResponses = userService.findAllNotFilter();
+        return ResponseEntity.ok().body(userResponses);
+    }
 
     @GetMapping
     public ResponseEntity<?> findALl(
@@ -239,4 +239,65 @@ public class AUserController {
             return ResponseEntity.status(500).body("Đã xảy ra lỗi khi gửi email");
         }
     }
+
+//    Gửi thông báo khi xác nhận hoặc hủy đặt chỗ
+    @PostMapping("/{email}/booking-notification")
+    public ResponseEntity<?> sendMailBookingNotification(@PathVariable String email,
+                                                         @RequestParam String notificationType,
+                                                         @Valid  @RequestBody BookingInfoResponseDTO bookingInfo) throws CustomException
+    {
+        try {
+            String subject;
+            String htmlContent;
+            // Khởi tạo đối tượng định dạng Ngày giờ
+            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+            sdf.setTimeZone(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+
+            // Format các trường Date
+            String formattedDepartureDate = sdf.format(bookingInfo.getDayDetail().getDepartureDate());
+            String formattedReturnDate = sdf.format(bookingInfo.getDayDetail().getReturnDate());
+
+            if ("CONFIRMED".equalsIgnoreCase(notificationType)) {
+                subject = "Xác Nhận Đặt Chỗ Thành Công";
+                htmlContent = "<h1>Xin Chào!</h1>" +
+                        "<p>Đơn đặt chỗ của bạn đã được xác nhận thành công.</p>" +
+                        "<p><strong>Thông Tin Đặt Chỗ:</strong> </p>" +
+                        "<ul>" +
+                        "<li>Tên chuyến đi: " + bookingInfo.getDayDetail().getTour().getTourName() + "</li>" +
+                        "<li>Khu vực: " + bookingInfo.getDayDetail().getTour().getArea().getAreaName() + "</li>" +
+                        // SỬ DỤNG BIẾN ĐÃ FORMAT
+                        "<li>Ngày khởi hành: " + formattedDepartureDate + "</li>" +
+                        "<li>Ngày kết thúc: " + formattedReturnDate + "</li>" +
+                        "</ul>";
+            } else if ("CANCELED".equalsIgnoreCase(notificationType)) {
+                subject = "Hủy Đặt Chỗ Thành Công";
+                htmlContent = "<h1>Xin Chào!</h1>" +
+                        "<p>Đơn đặt chỗ của bạn đã bị hủy bỏ.</p>" +
+                        "<p><strong>Thông Tin Đặt Chỗ:</strong> </p>" +
+                        "<ul>" +
+                        "<li>Tên chuyến đi: " + bookingInfo.getDayDetail().getTour().getTourName() + "</li>" +
+                        "<li>Khu vực: " + bookingInfo.getDayDetail().getTour().getArea().getAreaName() + "</li>" +
+                        // SỬ DỤNG BIẾN ĐÃ FORMAT
+                        "<li>Ngày khởi hành: " + formattedDepartureDate + "</li>" +
+                        "<li>Ngày kết thúc: " + formattedReturnDate + "</li>" +
+                        "</ul>";
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Loại thông báo không hợp lệ.");
+            }
+
+            // Gửi email với thông báo đặt chỗ
+            otpService.sendHTMLMessage(email, subject, htmlContent);
+
+            // Tạo đối tượng trả về thông báo
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Đã gửi thông báo đặt chỗ đến email thành công");
+
+            return ResponseEntity.ok().body(response);
+        } catch (CustomException e) {
+            return ResponseEntity.status(e.getStatus()).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Đã xảy ra lỗi khi gửi email");
+        }
+    }
+
 }

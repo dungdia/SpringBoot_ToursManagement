@@ -1,13 +1,19 @@
 import React from "react";
 import Header from "./header";
+import SlideShow from "./slideShow";
 import "./userLayout.css";
 
 export default function UserLayout() {
    return (
-      <div className="header flex justify-center items-center h-[80px] mb-3">
-         <div className="container">
-            <Header />
+      <>
+         <div className="header flex justify-center items-center h-[80px] mb-3">
+            <div className="container">
+               <Header />
+            </div>
          </div>
-      </div>
+         <div className="container mt-10!">
+            <SlideShow />
+         </div>
+      </>
    );
 }

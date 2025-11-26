@@ -30,7 +30,7 @@ const createTour = async (values) => {
 const updateTour = async (tourId, values) => {
    const response = await baseURL.put(`/admin/tours/${tourId}`, values);
    return response;
-}
+};
 
 const removeTourById = async (tourId) => {
    const response = await baseURL.delete(`/admin/tours/${tourId}`);
@@ -163,6 +163,20 @@ const updateDayDetailByTourIdAndDayDetailId = async (
    return response;
 };
 
+const uploadImage_Cloudinary = async (formData) => {
+   const response = await baseURL.post(
+      "admin/tours/uploadMultipleImages/cloudinary",
+      formData,
+      {
+         headers: {
+            // Tắt Content-Type cứng của instance để Axios tự tính toán multipart
+            "Content-Type": undefined,
+         },
+      }
+   );
+   return response;
+};
+
 export {
    getAllTours,
    createTour,
@@ -180,4 +194,5 @@ export {
    removeDayDetailByTourIdAndDayDetailId,
    unblockStatusDayDetail,
    updateDayDetailByTourIdAndDayDetailId,
+   uploadImage_Cloudinary,
 };

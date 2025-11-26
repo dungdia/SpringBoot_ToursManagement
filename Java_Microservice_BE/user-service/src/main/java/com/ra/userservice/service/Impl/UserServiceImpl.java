@@ -12,6 +12,7 @@ import com.ra.userservice.repository.IRoleRepository;
 import com.ra.userservice.repository.IUserRepository;
 import com.ra.userservice.service.IOTPService;
 import com.ra.userservice.service.IUserService;
+import com.ra.userservice.service.IUserToBookingServiceCommunication;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,33 +33,34 @@ public class UserServiceImpl implements IUserService {
     private final PasswordEncoder passwordEncoder;
     private final IRoleRepository roleRepository;
     private final IOTPService otpService;
+    private final IUserToBookingServiceCommunication userToBookingServiceCommunication;
 
-//    @Override
-//    public List<UserResponse> findAll() {
-//        List<Users> users = userRepository.findAll();
-//        List<UserResponse> responseDTO = new ArrayList<>();
-//        for (Users user : users){
-//
-//            // XỬ LÝ GENDER: Kiểm tra null an toàn. Trả về null nếu DB null.
-//            String genderString = user.getGender() != null ? user.getGender().toString() : null;
-//
-//            // XỬ LÝ ROLES: Đảm bảo không null
-//            Set<Roles> userRoles = user.getRoles() != null ? user.getRoles() : new HashSet<>();
-//
-//            UserResponse userItem = UserResponse.builder()
-//                    .id(user.getId())
-//                    .fullName(user.getFullName())
-//                    .email(user.getEmail())
-//                    .phone(user.getPhone())
-//                    .gender(genderString)
-//                    .roles(userRoles)
-//                    .address(user.getAddress())
-//                    .status(user.getStatus())
-//                    .build();
-//            responseDTO.add(userItem);
-//        }
-//        return responseDTO;
-//    }
+    @Override
+    public List<UserResponse> findAllNotFilter() {
+        List<Users> users = userRepository.findAll();
+        List<UserResponse> responseDTO = new ArrayList<>();
+        for (Users user : users){
+
+            // XỬ LÝ GENDER: Kiểm tra null an toàn. Trả về null nếu DB null.
+            String genderString = user.getGender() != null ? user.getGender().toString() : null;
+
+            // XỬ LÝ ROLES: Đảm bảo không null
+            Set<Roles> userRoles = user.getRoles() != null ? user.getRoles() : new HashSet<>();
+
+            UserResponse userItem = UserResponse.builder()
+                    .id(user.getId())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .phone(user.getPhone())
+                    .gender(genderString)
+                    .roles(userRoles)
+                    .address(user.getAddress())
+                    .status(user.getStatus())
+                    .build();
+            responseDTO.add(userItem);
+        }
+        return responseDTO;
+    }
 
     @Override
     public Page<Users> findAll(Pageable pageable, String search, Boolean statusUser, Gender gender) {
@@ -82,6 +84,13 @@ public class UserServiceImpl implements IUserService {
     @Override
     public Users update(UserUpdateRequest userUpdateRequest, Long updateId) throws CustomException {
         Users users = findById(updateId);
+
+        Boolean userIsUsedBooking = userToBookingServiceCommunication.checkIfUserIsUsedBooking(updateId);
+// Kiểm tra user có ROLE_ADMIN or ROLE_OWNER
+        boolean hasAdminOrOwnerRole = users.getRoles().stream()
+                .anyMatch(role -> role.getRoleName() == RoleName.ROLE_ADMIN || role.getRoleName() == RoleName.ROLE_OWNER);
+        if(userIsUsedBooking && hasAdminOrOwnerRole)
+            throw new CustomException("Không thể cập nhật User (ID: " + updateId + ") vì người dùng đã đặt chuyến.");
 
         users.setFullName(userUpdateRequest.getFullName());
         users.setGender(userUpdateRequest.getGender());
@@ -131,6 +140,12 @@ public class UserServiceImpl implements IUserService {
     @Override
     public void deleteById(Long id) throws CustomException {
         Users users = findById(id);
+
+        Boolean userIsUsedBooking = userToBookingServiceCommunication.checkIfUserIsUsedBooking(id);
+
+        if(userIsUsedBooking)
+            throw new CustomException("Không thể khóa / xóa User (ID: " + id + ") vì người dùng đã đặt chuyến.");
+
         if(userRepository.existsById(id)){
             if(users.getStatus()){
                 users.setStatus(false);

@@ -12,11 +12,16 @@ import com.ra.tourservice.model.entity.Images;
 import com.ra.tourservice.model.entity.Tours;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
 public interface ITourService {
+    List<String> uploadMultipleImages(MultipartFile[] files) throws IOException;
+
     List<TourBookingResponseDTO> findAll();
     // Trong Tour-service: ITourService.java
 
@@ -64,5 +69,6 @@ public interface ITourService {
 
 //    Trừ số lượng slots trong DayDetails
     void deductSlots(Long dayDetailId, Long slots) throws CustomException;
+    void addSlot(Long dayDetailId, Long slot) throws CustomException;
 
 }
