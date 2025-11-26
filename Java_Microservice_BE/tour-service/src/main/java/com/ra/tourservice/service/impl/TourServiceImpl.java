@@ -1,5 +1,8 @@
 package com.ra.tourservice.service.impl;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.utils.ObjectUtils;
+import com.ra.tourservice.config.CloudinaryConfig.CloudinaryConfig;
 import com.ra.tourservice.exception.CustomException;
 import com.ra.tourservice.model.dto.req.TourRequestDTO;
 import com.ra.tourservice.model.dto.req.UpdateTourRequestDTO;
@@ -18,7 +21,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,6 +32,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class TourServiceImpl implements ITourService {
+    private final Cloudinary cloudinary;
     private final ITourRepository tourRepository;
     private final IDayDetailRepository dayDetailRepository;
     private final IImageRepository imageRepository;
@@ -33,6 +40,33 @@ public class TourServiceImpl implements ITourService {
     private final IAreaServiceCommunication areaServiceCommunication;
 //    Gọi qua service Booking
     private final ITourToBookingServiceCommunication tourToBookingServiceCommunication;
+
+
+    @Override
+    public List<String> uploadMultipleImages(MultipartFile[] files) throws IOException {
+
+        List<String> uploadedUrls = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            if (!file.isEmpty()) { // Kiểm tra file riêng lẻ có rỗng không
+                try {
+                    // Upload từng file một
+                    Map result = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+
+                    // Lấy secure URL và thêm vào danh sách
+                    uploadedUrls.add((String) result.get("secure_url"));
+
+                } catch (IOException e) {
+                    // Xử lý hoặc log lỗi cho từng file
+                    System.err.println("Lỗi upload file: " + file.getOriginalFilename() + ". Error: " + e.getMessage());
+                    // Tùy chọn: Có thể ném lại ngoại lệ hoặc bỏ qua file lỗi
+                    throw new IOException("Không thể upload một hoặc nhiều file.", e);
+                }
+            }
+        }
+
+        return uploadedUrls;
+    }
 
     @Override
     public List<TourBookingResponseDTO> findAll() {

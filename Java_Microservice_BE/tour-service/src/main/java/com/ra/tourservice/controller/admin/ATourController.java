@@ -20,9 +20,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.Console;
+import java.io.IOException;
 import java.net.URI;
 import java.util.Date;
 import java.util.List;
@@ -41,6 +45,28 @@ public class ATourController {
         String roles = request.getHeader("X-User-Role");
 
         return "Request từ user: " + email + " | Roles: " + roles;
+    }
+
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @PostMapping(value = "/uploadMultipleImages/cloudinary", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadMultipleImagesCloudinary(
+            @RequestParam("files") MultipartFile[] files) throws IOException {
+
+        //  Kiểm tra mảng files
+        if (files == null || files.length == 0) {
+            return ResponseEntity.badRequest().body("Vui lòng chọn ít nhất một file để upload.");
+        }
+
+        try {
+            //  Gọi Service mới để xử lý danh sách files
+            List<String> imageUrls = tourService.uploadMultipleImages(files);
+
+            // Trả về danh sách các URL
+            return ResponseEntity.ok(imageUrls);
+
+        } catch (IOException e) {
+            return ResponseEntity.status(500).body("Lỗi khi upload files: " + e.getMessage());
+        }
     }
 
 //    API lấy toàn bộ tour không phân trang

@@ -221,11 +221,49 @@ public Bookings updateCustomer(CustomerRequestDTO customerRequestDTO, Long booki
         return bookingRepository.save(booking);
     }
 
+// Trong BookingServiceImpl.java
+
+// Giả định: Bạn đã inject SlotToDayDetailServiceCommunication
+// @Autowired
+// private SlotToDayDetailServiceCommunication slotToDayDetailServiceCommunication;
+
     @Override
+    @Transactional
     public Bookings updateBookingStatusCancelled(Long bookingId) throws CustomException {
+
+        // Tìm Booking hiện tại
         Bookings booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new CustomException("Không tìm thấy booking với ID: " + bookingId));
+
+        // Kiểm tra trạng thái: Tránh hủy một booking đã hoàn thành hoặc đã hủy trước đó
+        if (booking.getStatus() == Status.PAID) {
+            throw new CustomException("Không thể hủy Booking đã thanh toán/hoàn thành.");
+        }
+        if (booking.getStatus() == Status.CANCELED) {
+            throw new CustomException("Booking ID " + bookingId + " đã bị hủy trước đó.");
+        }
+
+        int numberOfSlotsToReturn = booking.getCustomers().size();
+
+        if (numberOfSlotsToReturn > 0) {
+            // Cập nhật Slot trong Tour Service (TĂNG SLOT LÊN)
+            try {
+                Long dayDetailId = booking.getDayDetailId();
+                Long slotsToReturn = (long) numberOfSlotsToReturn;
+
+                // Gọi Microservice Tour để cộng lại slot
+                slotToDayDetailServiceCommunication.addSlot(dayDetailId, slotsToReturn);
+
+            } catch (Exception e) {
+                // Nếu lỗi khi cập nhật slot, ném ra CustomException để rollback giao dịch
+                throw new CustomException("Hủy Booking thất bại: Lỗi khi cập nhật Slot trong Tour Service. " + e.getMessage());
+            }
+        }
+
+        // 5. Cập nhật trạng thái Booking
         booking.setStatus(Status.CANCELED);
+
+        // 6. Lưu Booking
         return bookingRepository.save(booking);
     }
 

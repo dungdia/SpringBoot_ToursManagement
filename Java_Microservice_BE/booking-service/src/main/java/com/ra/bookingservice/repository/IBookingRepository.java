@@ -25,4 +25,6 @@ public interface IBookingRepository extends JpaRepository<Bookings,Long> {
             @Param("userId") Long userId,
             Pageable pageable
     );
+
+    Long countByUserId(Long userId);
 }

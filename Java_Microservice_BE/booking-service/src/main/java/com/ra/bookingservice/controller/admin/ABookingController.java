@@ -9,6 +9,7 @@ import com.ra.bookingservice.model.entity.Bookings;
 import com.ra.bookingservice.security.annotation.RequireRole;
 import com.ra.bookingservice.service.IBookingService;
 import com.ra.bookingservice.service.IBookingToTourService;
+import com.ra.bookingservice.service.IBookingToUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,7 @@ import java.net.URI;
 public class ABookingController {
     private final IBookingService bookingService;
     private final IBookingToTourService bookingToTourService;
+    private final IBookingToUserService bookingToUserService;
 
 //    Lấy tất cả booking không phân trang
     @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
@@ -159,6 +161,20 @@ public class ABookingController {
         }
     }
 
+    @RequireRole({"ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
+    @DeleteMapping("/{bookingId}/deleteCustomer/{customerId}")
+    public ResponseEntity<?> deleteCustomerByBookingIdAndCustomerId(
+            @PathVariable Long bookingId,
+            @PathVariable Long customerId
+    ) throws CustomException{
+        try {
+            bookingService.deleteCustomer(bookingId, customerId);
+            return ResponseEntity.ok().body("Xoá khách hàng thành công.");
+        }catch (CustomException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
 //    ===============================
 //         Booking liên quan đến Tour
 //    ===============================
@@ -176,18 +192,13 @@ public class ABookingController {
         return ResponseEntity.ok().body(isUsed);
     }
 
-    @RequireRole({"ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
-    @DeleteMapping("/{bookingId}/deleteCustomer/{customerId}")
-    public ResponseEntity<?> deleteCustomerByBookingIdAndCustomerId(
-            @PathVariable Long bookingId,
-            @PathVariable Long customerId
-    ) throws CustomException{
-        try {
-            bookingService.deleteCustomer(bookingId, customerId);
-            return ResponseEntity.ok().body("Xoá khách hàng thành công.");
-        }catch (CustomException e){
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+//    ===============================
+//         Booking liên quan đến User
+//    ===============================
+    @GetMapping("/users/{userId}/check")
+    public ResponseEntity<?> checkIfUserIsUsedBooking(@PathVariable Long userId) throws CustomException {
+        Boolean isUsed = bookingToUserService.checkIfUserIsUsedBooking(userId);
+        return ResponseEntity.ok().body(isUsed);
     }
 
 }
