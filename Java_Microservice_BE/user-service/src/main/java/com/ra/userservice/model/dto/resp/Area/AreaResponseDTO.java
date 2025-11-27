@@ -1,4 +1,4 @@
-package com.ra.userservice.model.dto.resp.booking;
+package com.ra.userservice.model.dto.resp.Area;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

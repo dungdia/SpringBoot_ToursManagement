@@ -36,7 +36,7 @@ public class AAreaController {
     }
 
     // API lấy toàn bộ khu vực không phân trang
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAllNotFilter")
     public ResponseEntity<List<AreaResponseDTO>> getAllAreas() {
         List<AreaResponseDTO> areas = areaService.findAll();
@@ -44,7 +44,7 @@ public class AAreaController {
     }
 
     // API lấy toàn bộ khu vực có phân trang
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAll")
     public ResponseEntity<?> getAllAreas(
             @PageableDefault(page = 0,size = 8,sort = "id",direction = Sort.Direction.ASC) Pageable pageable,
@@ -56,7 +56,7 @@ public class AAreaController {
         return ResponseEntity.ok().body(areaService.findAllWithFilters( search, statusArea,pageable));
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/{areaId}")
     public ResponseEntity<?> getAreaById(@PathVariable Long areaId) {
         try {
@@ -67,7 +67,7 @@ public class AAreaController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_USER", "ROLE_OWNER"})
     @PostMapping
     public  ResponseEntity<?> addNewArea(@Valid @RequestBody AreaRequestDTO areaRequestDTO){
         try {
@@ -78,7 +78,7 @@ public class AAreaController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_USER", "ROLE_OWNER"})
     @PutMapping("/{areaId}")
     public ResponseEntity<?> updateArea(
             @Valid @RequestBody AreaRequestDTO areaRequestDTO,
@@ -95,7 +95,7 @@ public class AAreaController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_USER", "ROLE_OWNER"})
     @DeleteMapping("/{areaId}")
     public ResponseEntity<?> deleteAreaById(@PathVariable Long areaId) {
         try {
@@ -106,7 +106,7 @@ public class AAreaController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_USER", "ROLE_OWNER"})
     @PostMapping("/unblockStatus/{areaId}")
     public ResponseEntity<?> unblockStatus(@PathVariable Long areaId) throws  CustomException {
         try{

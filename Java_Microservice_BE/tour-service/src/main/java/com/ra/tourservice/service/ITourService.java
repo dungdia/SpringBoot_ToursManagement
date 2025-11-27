@@ -47,6 +47,9 @@ public interface ITourService {
 //    Thêm mới 1 Tour
     TourResponseDTO save(TourRequestDTO tourRequestDTO) throws CustomException;
     Tours findById(Long tourId) throws CustomException;
+
+    TourResponseDTO findTourResponseDTOById(Long tourId) throws CustomException;
+
     DayDetailResponseDTO findDayDetailById(Long dayDetailId) throws CustomException;
 //    Thêm DayDetails vào Tour đã có sẵn
     Tours saveDayDetails(TourRequestDTO tourRequestDTO, Long tourId) throws CustomException;

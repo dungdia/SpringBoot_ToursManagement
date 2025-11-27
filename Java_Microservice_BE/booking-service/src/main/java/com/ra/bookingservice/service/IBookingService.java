@@ -17,6 +17,7 @@ public interface IBookingService {
     Page<BookingResponseDTO> findAllWithFilterPage(Status status, Long userId, Pageable pageable) throws CustomException;
 //    Lấy tất cả customer có phân trang
     Page<CustomerResponseDTO> findAllCustomerWithFilterPage(Long bookingId, String search, Pageable pageable) throws CustomException;
+    Page<BookingResponseDTO> findAllByUserIdWithFilterPage(Long userId,Status status,Pageable pageable) throws CustomException;
     BookingResponseDTO createBooking(CreateBookingRequestDTO bookingRequestDTO) throws CustomException;
 
     // Thêm customer vào booking có sẵn

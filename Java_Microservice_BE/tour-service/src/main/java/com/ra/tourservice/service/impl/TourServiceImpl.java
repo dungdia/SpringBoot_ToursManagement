@@ -294,6 +294,12 @@ public class TourServiceImpl implements ITourService {
     }
 
     @Override
+    public TourResponseDTO findTourResponseDTOById(Long tourId) throws CustomException {
+       Tours tour = tourRepository.findById(tourId).orElseThrow(() -> new CustomException("Không tìm thấy Ngày có Id là:  " + tourId));
+       return mapEntityToResponseDTO(tour);
+    }
+
+    @Override
     public DayDetailResponseDTO  findDayDetailById(Long dayDetailId) throws CustomException {
         DayDetails dayDetail = dayDetailRepository.findById(dayDetailId)
                 .orElseThrow(() -> new CustomException("Không tìm thấy Chi tiết Ngày có Id là: " + dayDetailId));

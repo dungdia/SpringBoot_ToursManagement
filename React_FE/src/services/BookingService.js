@@ -27,13 +27,44 @@ const getAllBookings = async (
    return response.data;
 };
 
+const getAllBookingsByUserIdWithFilterPage = async (
+   currentPage = 0,
+   pageSize = 8,
+   status = null,
+   userId
+) => {
+   let url = `/admin/bookings/findAllByUserIdWithFilterPage?page=${currentPage}&size=${pageSize}`;
+   // Thêm tham số status nếu không phải là null
+   if (status !== null) {
+      url += `&status=${status}`;
+   }
+
+   // Thêm tham số userId nếu không phải là null
+   if (userId !== null) {
+      url += `&userId=${userId}`;
+   }
+
+   const response = await baseURL.get(url);
+   return response.data;
+};
+
 const confirmBooking = async (id) => {
    const response = await baseURL.put(`/admin/bookings/${id}/confirm`);
    return response;
 };
 
+const createBooking = async (values) => {
+   const response = await baseURL.post("/admin/bookings", values);
+   return response;
+};
+
 const cancelBooking = async (id) => {
    const response = await baseURL.put(`/admin/bookings/${id}/cancel`);
+   return response;
+};
+
+const paidBooking = async (id) => {
+   const response = await baseURL.put(`/admin/bookings/${id}/pay`);
    return response;
 };
 
@@ -96,8 +127,11 @@ const updateCustomer = async (bookingId, customerId, values) => {
 export {
    getAllBookingsNotFilter,
    getAllBookings,
+   getAllBookingsByUserIdWithFilterPage,
+   createBooking,
    confirmBooking,
    cancelBooking,
+   paidBooking,
    sendEmailConfirmOrCancelBooking,
    getAllCustomers,
    createCustomer,
