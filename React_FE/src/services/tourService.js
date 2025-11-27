@@ -1,6 +1,11 @@
 import baseURL from "@/api/instance";
 import { message } from "antd";
 
+const getTourById = async (tourId) => {
+   const response = await baseURL.get(`/admin/tours/TourResponseDTO/${tourId}`);
+   return response;
+};
+
 const getAllToursNotFilter = async () => {
    const response = await baseURL.get("/admin/tours/findAllNoFilter");
    return response;
@@ -178,6 +183,7 @@ const uploadImage_Cloudinary = async (formData) => {
 };
 
 export {
+   getTourById,
    getAllTours,
    createTour,
    updateTour,

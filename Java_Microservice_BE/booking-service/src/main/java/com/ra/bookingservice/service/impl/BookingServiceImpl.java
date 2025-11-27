@@ -100,6 +100,33 @@ public Page<CustomerResponseDTO> findAllCustomerWithFilterPage(Long bookingId, S
     return new PageImpl<>(dtoList, pageable, customerPage.getTotalElements());
 }
 
+//Lấy tất cả Booking theo userId có phân trang và filter theo status
+@Override
+public Page<BookingResponseDTO> findAllByUserIdWithFilterPage(Long userId, Status status, Pageable pageable) throws CustomException {
+
+    Page<Bookings> bookingPage = bookingRepository.findAllWithFilters(status, userId, pageable);
+
+    // 3. Ánh xạ (Mapping) từ Entity sang DTO
+    List<BookingResponseDTO> dtoList = bookingPage.getContent().stream()
+            .map(booking -> {
+                try {
+                    // Lấy thông tin chi tiết từ các Service khác
+                    UserResponseDTO user = bookingToUserServiceCommunication.getUserById(booking.getUserId());
+                    DayDetailResponseDTO dayDetail = slotToDayDetailServiceCommunication.getDayDetailById(booking.getDayDetailId());
+
+                    // Ánh xạ Entity + Data liên quan sang DTO
+                    return mapToBookingResponseDTO(booking, user, dayDetail);
+                } catch (CustomException e) {
+                    // Xử lý nếu có lỗi khi giao tiếp với các service khác
+                    throw new RuntimeException("Lỗi khi ánh xạ Booking ID: " + booking.getId(), e);
+                }
+            })
+            .collect(Collectors.toList());
+
+    // 4. Trả về PageImpl mới chứa danh sách DTO
+    return new PageImpl<>(dtoList, pageable, bookingPage.getTotalElements());
+}
+
     @Transactional // Đảm bảo tính toàn vẹn dữ liệu
     @Override
     public BookingResponseDTO createBooking(CreateBookingRequestDTO bookingRequestDTO) throws CustomException {
@@ -145,8 +172,8 @@ public Page<CustomerResponseDTO> findAllCustomerWithFilterPage(Long bookingId, S
         Bookings existingBooking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new CustomException("Không tìm thấy Booking với ID: " + bookingId));
 
-        if (existingBooking.getStatus() == Status.CANCELED || existingBooking.getStatus() == Status.PAID) {
-            throw new CustomException("Không thể thêm khách hàng vào Booking đã bị hủy hoặc đã hoàn thành.");
+        if (existingBooking.getStatus() != Status.PENDING ) {
+            throw new CustomException("Không thể thêm khách hàng vào chuyến đi đã bị hủy hoặc đã xác nhận hoặc đã hoàn thành.");
         }
 
         Long dayDetailId = existingBooking.getDayDetailId();
@@ -190,8 +217,8 @@ public Bookings updateCustomer(CustomerRequestDTO customerRequestDTO, Long booki
             .orElseThrow(() -> new CustomException("Không tìm thấy Booking với ID: " + bookingId));
 
     // 2. Kiểm tra trạng thái Booking: Chỉ cho phép chỉnh sửa khi đang ở trạng thái xử lý
-    if (existingBooking.getStatus() == Status.CANCELED || existingBooking.getStatus() == Status.PAID) {
-        throw new CustomException("Không thể chỉnh sửa thông tin khách hàng trong Booking đã bị hủy hoặc đã hoàn thành.");
+    if (existingBooking.getStatus() != Status.PENDING ) {
+        throw new CustomException("Không thể cập nhật khách hàng vào chuyến đi đã bị hủy hoặc đã xác nhận hoặc đã hoàn thành.");
     }
 
     // 3. Tìm Customer hiện tại
@@ -292,8 +319,8 @@ public void deleteCustomer(Long bookingId, Long customerId) throws CustomExcepti
             .orElseThrow(() -> new CustomException("Không tìm thấy Booking với ID: " + bookingId));
 
     // Kiểm tra trạng thái Booking
-    if (existingBooking.getStatus() == Status.CANCELED || existingBooking.getStatus() == Status.PAID) {
-        throw new CustomException("Không thể xóa khách hàng khỏi Booking đã bị hủy hoặc đã hoàn thành.");
+    if (existingBooking.getStatus() != Status.PENDING ) {
+        throw new CustomException("Không thể xóa khách hàng khỏi chuyến đi đã bị hủy hoặc đã xác nhận hoặc đã hoàn thành.");
     }
 
     //  Tìm Customer hiện tại

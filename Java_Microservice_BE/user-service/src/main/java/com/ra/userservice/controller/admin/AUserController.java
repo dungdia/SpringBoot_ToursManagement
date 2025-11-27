@@ -268,6 +268,8 @@ public class AUserController {
                         // SỬ DỤNG BIẾN ĐÃ FORMAT
                         "<li>Ngày khởi hành: " + formattedDepartureDate + "</li>" +
                         "<li>Ngày kết thúc: " + formattedReturnDate + "</li>" +
+                        "<li>Số chỗ: " + bookingInfo.getCustomers().size() + "</li>" +
+                        "<li>Tổng tiền: " + bookingInfo.getDayDetail().getSlot() * bookingInfo.getCustomers().size() + "</li>" +
                         "</ul>";
             } else if ("CANCELED".equalsIgnoreCase(notificationType)) {
                 subject = "Hủy Đặt Chỗ Thành Công";
@@ -280,6 +282,7 @@ public class AUserController {
                         // SỬ DỤNG BIẾN ĐÃ FORMAT
                         "<li>Ngày khởi hành: " + formattedDepartureDate + "</li>" +
                         "<li>Ngày kết thúc: " + formattedReturnDate + "</li>" +
+                        "<li>Số chỗ: " + bookingInfo.getCustomers().size() + "</li>" +
                         "</ul>";
             } else {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Loại thông báo không hợp lệ.");

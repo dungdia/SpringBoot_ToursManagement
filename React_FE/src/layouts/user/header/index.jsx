@@ -1,11 +1,34 @@
-import { Avatar, Button, Input, Select } from "antd";
-import React from "react";
+import { Avatar, Button, Input, message, Select } from "antd";
+import React, { useContext, useEffect, useState } from "react";
 import "./header.css";
 import { useNavigate } from "react-router-dom";
 import { encryption } from "@/utils/CryptoJS";
+import { getAllAreasNotFilter } from "@/services/areaService";
+import { HeaderContext } from "@/providers/headerUserProvider";
 
 export default function Header() {
+   const { searchValue, setSearchValue, selectedArea, setSelectedArea } =
+      useContext(HeaderContext);
+
    const navigate = useNavigate();
+
+   // Lấy tất cả dữ liệu khu vực
+   const [isAreaLoading, setIsAreaLoading] = useState(false);
+   const [areas, setAreas] = useState([]);
+   const [baseAreaId, setBaseAreaId] = useState(null);
+
+   // lấy giá trị tìm kiếm search
+   const [checkValueTour, setCheckValueTour] = useState("");
+
+   // Cập nhật searchValue trong HeaderContext khi checkValueTour thay đổi
+   useEffect(() => {
+      setSearchValue(checkValueTour);
+   }, [checkValueTour, setSearchValue]);
+
+   // Cập nhật setSelectedArea trong HeaderContext khi baseAreaId thay đổi
+   useEffect(() => {
+      setSelectedArea(baseAreaId);
+   }, [baseAreaId, setSelectedArea]);
 
    // Lấy thông tin đăng nhập từ localStorage
    const accountLogged =
@@ -17,6 +40,25 @@ export default function Header() {
       const initials = words?.map((word) => word.charAt(0).toUpperCase()); // Lấy chữ cái đầu của mỗi từ và chuyển thành chữ hoa
       return initials?.join(""); // Kết hợp các chữ cái đầu thành chuỗi
    };
+
+   // Hàm lấy tất cả khu vực
+   const fetchAreas = async () => {
+      try {
+         setIsAreaLoading(true);
+         const response = await getAllAreasNotFilter();
+         if (response.status === 200) {
+            setAreas(response.data);
+            setIsAreaLoading(false);
+         }
+      } catch (error) {
+         message.error("Không lấy dữ liệu khu vực. Vui lòng thử lại sau!");
+      }
+   };
+
+   useEffect(() => {
+      fetchAreas();
+   }, []);
+
    return (
       <>
          <div className="flex items-center justify-between p-5">
@@ -32,25 +74,41 @@ export default function Header() {
                   {/* Tìm kiếm */}
                   <div>
                      <Input.Search
-                        placeholder="Tìm kiếm chuyến đi..."
+                        placeholder="Tìm kiếm chuyến đi"
                         className="w-[350px]"
+                        allowClear
+                        value={checkValueTour}
+                        onChange={(e) => {
+                           setCheckValueTour(e.target.value);
+                           if (checkValueTour != null) {
+                              // setCurrentPage(1);
+                           }
+                        }}
                      />
                   </div>
                   {/* Lọc theo sản phẩm */}
                   <div className="flex items-center justify-center gap-3">
                      <p>Lọc khu vực</p>
                      <Select
-                        defaultValue="Tất cả"
-                        style={{ width: 120 }}
+                        loading={isAreaLoading}
+                        defaultValue="all"
+                        onChange={(value) => {
+                           setBaseAreaId(value); // Cập nhật trạng thái
+                           // setCurrentPage(1); // RESET VỀ TRANG 1
+                        }} // Cập nhật thể loại
+                        style={{ width: 160 }}
                         options={[
-                           { value: "jack", label: "Jack" },
-                           { value: "lucy", label: "Lucy" },
-                           { value: "Yiminghe", label: "yiminghe" },
                            {
-                              value: "disabled",
-                              label: "Disabled",
-                              disabled: true,
+                              value: "all",
+                              label: "Tất cả",
                            },
+
+                           ...areas
+                              ?.filter((area) => area.status === true)
+                              .map((area) => ({
+                                 value: area.id,
+                                 label: area.areaName,
+                              })),
                         ]}
                      />
                   </div>

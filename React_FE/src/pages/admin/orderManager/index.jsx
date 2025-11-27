@@ -1087,6 +1087,7 @@ export default function OrderManager() {
                      Hủy
                   </Button>
                   <Button
+                     loading={isDeleteCustomerLoading}
                      onClick={handleConfirmDeleteCustomer}
                      size="large"
                      danger
@@ -1276,7 +1277,7 @@ export default function OrderManager() {
                               block
                               icon={<PlusOutlined />}
                            >
-                              Thêm Chi tiết Chuyến đi
+                              Thêm Chi tiết khách hàng
                            </Button>
                         </Form.Item>
                      </>

@@ -1,0 +1,29 @@
+.format {
+   max-width: 100px; /* Đặt chiều rộng của phần tử */
+   white-space: nowrap; /* Ngăn không cho văn bản xuống dòng */
+   overflow: hidden; /* Ẩn văn bản vượt quá chiều rộng */
+   text-overflow: ellipsis; /* Hiển thị dấu ba chấm ở cuối */
+}
+
+.img-tour {
+   /* Đảm bảo transition mượt mà cho hiệu ứng scale */
+   transition: transform 0.4s ease-in-out;
+}
+
+/* Khi hover lên toàn bộ tour-card, hình ảnh bên trong sẽ scale lên
+Sử dụng transform: scale() để hình ảnh phóng to (1.05 = 5%)
+*/
+.tour-card:hover .img-tour {
+   transform: scale(1.05);
+}
+
+/* Có thể thêm style cho title và price nếu muốn định dạng ngoài Tailwind
+*/
+.title {
+   /* Giới hạn 2 dòng cho tiêu đề */
+   display: -webkit-box;
+   -webkit-line-clamp: 2;
+   -webkit-box-orient: vertical;
+   overflow: hidden;
+   text-overflow: ellipsis;
+}

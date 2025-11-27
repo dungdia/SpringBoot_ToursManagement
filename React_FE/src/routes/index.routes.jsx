@@ -21,6 +21,11 @@ const UserLayout = React.lazy(() => import("@/layouts/user/UserLayout"));
 const UserInfoLayout = React.lazy(() =>
    import("@/layouts/infoUser/InfoUserLayout")
 );
+
+// Các route liên quan tới trang selectTour
+const SelectTour = React.lazy(() => import("@/layouts/selectTour"));
+
+// Các route liên quan tới trang userInfo
 const UserInfo = React.lazy(() => import("@/pages/infoUser/infoUser"));
 const ChangePassword = React.lazy(() =>
    import("@/pages/infoUser/changePassword")
@@ -79,6 +84,14 @@ const routes = createBrowserRouter([
       element: (
          <LazyLoadComponent>
             <UserLayout />
+         </LazyLoadComponent>
+      ),
+   },
+   {
+      path: "/select-tour/:email/tourid/:tourId",
+      element: (
+         <LazyLoadComponent>
+            <SelectTour />
          </LazyLoadComponent>
       ),
    },

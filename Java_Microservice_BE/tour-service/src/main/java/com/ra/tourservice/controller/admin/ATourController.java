@@ -47,7 +47,7 @@ public class ATourController {
         return "Request từ user: " + email + " | Roles: " + roles;
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PostMapping(value = "/uploadMultipleImages/cloudinary", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadMultipleImagesCloudinary(
             @RequestParam("files") MultipartFile[] files) throws IOException {
@@ -70,7 +70,7 @@ public class ATourController {
     }
 
 //    API lấy toàn bộ tour không phân trang
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAllNoFilter")
     public ResponseEntity<List<TourBookingResponseDTO>> getAllTours() {
         List<TourBookingResponseDTO> tours = tourService.findAll();
@@ -78,7 +78,7 @@ public class ATourController {
     }
 
 //    API lấy tour có phân trang với filter
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAll")
     public ResponseEntity<?> getAllTours(
             @PageableDefault(page = 0,size = 8,sort = "id",direction = Sort.Direction.ASC) Pageable pageable,
@@ -107,7 +107,7 @@ public class ATourController {
     }
 
     //    lấy tất cả hình ảnh theo TourId có phân trang
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAllImagesURLsWithPage/{tourId}")
     public ResponseEntity<?> getAllTourImagesURLsWithPage(
             @PathVariable Long tourId,
@@ -122,7 +122,7 @@ public class ATourController {
     }
 
 //      Lấy tất cả DayDetails theo TourId không phân trang
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAllDayDetailsNotPage/{tourId}")
     public ResponseEntity<?> getAllDayDetailsByTourId(@PathVariable Long tourId){
         try {
@@ -133,7 +133,7 @@ public class ATourController {
     }
 
 //    Lấy tất cả DayDetails theo TourId có phân trang và filter
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAllDayDetailsWithFilterPage/{tourId}")
     public ResponseEntity<?> getAllDayDetailsByTourIdWithFilterPage(
             @PathVariable Long tourId,
@@ -164,7 +164,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
     @GetMapping("/{tourId}")
     public ResponseEntity<?> getTourById(@PathVariable Long tourId){
         try {
@@ -175,7 +175,18 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/TourResponseDTO/{tourId}")
+    public ResponseEntity<?> findTourResponseDTOById(@PathVariable Long tourId){
+        try {
+            TourResponseDTO tours = tourService.findTourResponseDTOById(tourId);
+            return ResponseEntity.ok().body(tours);
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/dayDetail/{dayDetailId}")
     public ResponseEntity<?> getDayDetailById(@PathVariable Long dayDetailId){
         try {
@@ -185,7 +196,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PostMapping
     public  ResponseEntity<?> addNewTour(@Valid @RequestBody TourRequestDTO tourRequestDTO){
         try {
@@ -197,7 +208,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PostMapping("/{tourId}/dayDetails")
     public ResponseEntity<?> addNewDayDetailById(
             @Valid @RequestBody TourRequestDTO tourRequestDTO,
@@ -210,7 +221,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PostMapping("/{tourId}/images")
     public ResponseEntity<?> addNewImagesById(
             @Valid @RequestBody TourRequestDTO tourRequestDTO,
@@ -223,7 +234,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PutMapping("/{tourId}" )
     public ResponseEntity<?> updateTourById(
             @Valid @RequestBody UpdateTourRequestDTO updateTourRequestDTO,
@@ -236,7 +247,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PutMapping("/{tourId}/dayDetails/{dayDetailId}" )
     public ResponseEntity<?> updateDayDetailByTourIdAndDetailId(
             @Valid @RequestBody UpdateTourRequestDTO updateTourRequestDTO,
@@ -250,7 +261,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PutMapping("/{tourId}/images/{imageId}" )
     public ResponseEntity<?> updateImagesByTourIdAndImageId(
             @Valid @RequestBody UpdateTourRequestDTO updateTourRequestDTO,
@@ -264,7 +275,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @DeleteMapping("/{tourId}")
     public ResponseEntity<?> deleteTourById(@PathVariable Long tourId){
         try {
@@ -275,7 +286,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @DeleteMapping("/{tourId}/dayDetails/{dayDetailId}")
     public ResponseEntity<?> deleteDayDetailById(
             @PathVariable Long tourId,
@@ -289,7 +300,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @DeleteMapping("/{tourId}/images/{imageId}")
     public ResponseEntity<?> deleteImageById(
             @PathVariable Long tourId,
@@ -303,7 +314,7 @@ public class ATourController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PostMapping("/{tourId}/dayDetails/{dayDetailId}/openBlock")
     public ResponseEntity<?> openBlockDayDetail(
             @PathVariable Long tourId,
@@ -349,14 +360,14 @@ public class ATourController {
 //         Tour liên quan đến Area
 //    ===============================
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/areas/{areaId}/check")
     public ResponseEntity<?> checkIfAreaIsUsed(@PathVariable Long areaId){
         Boolean isUsed = tourToAreaService.checkIfAreaIsUsed(areaId);
         return ResponseEntity.ok().body(isUsed);
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/{areaId}/tours")
     public ResponseEntity<?> ExistsByAreaId(@PathVariable Long areaId) throws CustomException {
         try {
@@ -370,7 +381,7 @@ public class ATourController {
 //    ===============================
 //         Tour liên quan đến Booking
 //    ===============================
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/{tourId}/dayDetailIds")
     public ResponseEntity<?> GetDayDetailIdsByTourId(@PathVariable Long tourId){
         List<Long> dayDetailIds = tourToBookingService.getDayDetailIdsByTourId(tourId);

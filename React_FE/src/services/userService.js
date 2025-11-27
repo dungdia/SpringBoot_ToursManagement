@@ -55,10 +55,27 @@ const checkUserInfoCurrentPassword = async (currentPassword, email) => {
    }
 };
 
+const sendEmailPendingOrCancelOrPaidBooking = async (
+   email,
+   notificationType = "",
+   bookingInfo
+) => {
+   let url = `/user/${email}/booking-notification?`;
+
+   // Thêm tham số notificationType nếu không phải là null
+   if (notificationType !== null || notificationType !== "") {
+      url += `&notificationType=${notificationType}`;
+   }
+
+   const response = await baseURL.post(url, bookingInfo);
+   return response.data;
+};
+
 export {
    updateUserInfo,
    findUserInfoEmailById,
    findUserInfoByEmail,
    changePassByUserInfoEmail,
    checkUserInfoCurrentPassword,
+   sendEmailPendingOrCancelOrPaidBooking,
 };

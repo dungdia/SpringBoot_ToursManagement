@@ -29,7 +29,7 @@ public class ABookingController {
     private final IBookingToUserService bookingToUserService;
 
 //    Lấy tất cả booking không phân trang
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAllNotFilter")
     public ResponseEntity<?> getAllBookingsNotFilter(){
         try {
@@ -40,9 +40,24 @@ public class ABookingController {
     }
 
 //    Lấy tất cả booking có phân trang
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/findAllWithFilterPage")
     public ResponseEntity<?> getAllBookingsWithFilterPage(
+            @RequestParam(required = false)Status status,
+            @RequestParam(required = false) Long userId,
+            @PageableDefault(page = 0,size = 8,sort = "id",direction = Sort.Direction.ASC) Pageable pageable)
+    {
+        try {
+            return ResponseEntity.ok().body(bookingService.findAllWithFilterPage(status,userId,pageable));
+        }catch (CustomException ex){
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        }
+    }
+
+    //    Lấy tất cả booking bởi UserId có phân trang
+    @RequireRole({"ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
+    @GetMapping("/findAllByUserIdWithFilterPage")
+    public ResponseEntity<?> getAllByUserIdWithFilterPage(
             @RequestParam(required = false)Status status,
             @RequestParam(required = false) Long userId,
             @PageableDefault(page = 0,size = 8,sort = "id",direction = Sort.Direction.ASC) Pageable pageable)
@@ -69,7 +84,7 @@ public class ABookingController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({ "ROLE_USER","ROLE_ADMIN", "ROLE_OWNER"})
     @PostMapping
     public ResponseEntity<?> createBooking(@Valid @RequestBody CreateBookingRequestDTO createBookingRequestDTO){
         try {
@@ -113,7 +128,7 @@ public class ABookingController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @PutMapping("/{bookingId}/confirm")
     public ResponseEntity<?> confirmBooking(@PathVariable Long bookingId) throws CustomException {
         try {
@@ -125,7 +140,7 @@ public class ABookingController {
         }
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER,ROLE_USER"})
+    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER","ROLE_USER"})
     @PutMapping("/{bookingId}/cancel")
     public ResponseEntity<?> cancelBooking(@PathVariable Long bookingId) throws CustomException {
         try {
@@ -178,14 +193,14 @@ public class ABookingController {
 //    ===============================
 //         Booking liên quan đến Tour
 //    ===============================
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/tours/{tourId}/check")
     public ResponseEntity<?> checkIfTourIsUsed(@PathVariable Long tourId) throws CustomException {
         Boolean isUsed = bookingToTourService.checkIfTourIsUsed(tourId);
         return ResponseEntity.ok().body(isUsed);
     }
 
-    @RequireRole({"ROLE_ADMIN", "ROLE_OWNER"})
+    @RequireRole({"ROLE_ADMIN","ROLE_USER", "ROLE_OWNER"})
     @GetMapping("/dayDetails/{dayDetailId}/check")
     public ResponseEntity<?> checkIfDayDetailInTourIsUsed(@PathVariable Long dayDetailId) throws CustomException {
         Boolean isUsed = bookingToTourService.checkIfDayDetailInTourIsUsed(dayDetailId);

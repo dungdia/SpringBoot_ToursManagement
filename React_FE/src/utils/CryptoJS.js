@@ -11,7 +11,8 @@ const encryptPassword = async (password) => {
 
 // Hàm mã hóa
 const encryption = (encryptedData) => {
-   return CryptoJS.AES.encrypt(encryptedData, secretKey).toString();
+   const dataToEncrypt = String(encryptedData || "");
+   return CryptoJS.AES.encrypt(dataToEncrypt, secretKey).toString();
 };
 
 // Hàm giải mã
