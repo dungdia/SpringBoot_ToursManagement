@@ -1332,14 +1332,16 @@ export default function Order() {
             title={
                <div className="flex items-center gap-1">
                   <h3>Thông tin khách hàng trong chuyến đi</h3>
-                  <h3>
-                     <span className="text-amber-400">
+                  <h3
+                     title={currentBooking?.dayDetail?.tour?.tourName}
+                     className="format"
+                  >
+                     <span className=" text-amber-400">
                         {currentBooking?.dayDetail?.tour?.tourName}
                      </span>
-                     , người đặt là
                   </h3>
                   <h3 className="text-amber-600">
-                     {currentBooking?.user?.fullName}
+                     , người đặt là {currentBooking?.user?.fullName}
                   </h3>
                </div>
             }

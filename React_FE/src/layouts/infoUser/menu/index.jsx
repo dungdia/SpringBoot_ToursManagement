@@ -91,6 +91,7 @@ export default function MenuAdmin() {
                <span> Các nơi yêu thích</span>
             </NavLink>
          ),
+         disabled: true,
       },
       {
          key: "5",

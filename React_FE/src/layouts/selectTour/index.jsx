@@ -24,6 +24,7 @@ import {
    findUserInfoByEmail,
    sendEmailPendingOrCancelOrPaidBooking,
 } from "@/services/userService";
+import "./selectTour.css";
 
 dayjs.extend(customParseFormat);
 
@@ -241,7 +242,7 @@ export default function SelectTour() {
             message.warning(
                "Vui lòng cập nhật đầy đủ thông tin trước khi đặt chuyến đi!"
             );
-            handleCloseModalBooking()
+            handleCloseModalBooking();
             return;
          }
 
@@ -379,7 +380,7 @@ export default function SelectTour() {
                                     },
                                     {
                                        pattern:
-                                          /^[a-zA-ZÀÁẠÃẢẶẴẲẮẰÁĂÂẤẪẨẬẦÃÈẼẺẸÉÊẾỀỄỆỂÌÍỈỊIỢỠỚỜỞÕỌỎÒÓỔỖỐỒỘÔÕƯỨỪỰỮỬỤŨỦÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÊƠàáạảãèéẹẻẽìíịỉĩòóọỏõùúụủũơớờợởỡăắằặẳẵâấầậẩẫêếềệểễđĩọỏốồộổỗồờớợởẽẹẻếìíùúụũưữựửữữýỳỵỷỹ ]+$/,
+                                          /^[a-zA-ZÀÁẠÃẢẶẴẲẮẰÁĂÂẤẪẨẬẦÃÈẼẺẸÉÊẾỀỄỆỂÌÍỈỊIỢỠỚỜỞÕỌỎÒÓỔỖỐỒỘÔÕƯỨỪỰỮỬỤŨỦÙÚĂĐĨŨƠàáâãèéêìíòóôõùúăđĩũơƯĂÊƠàáạảãèéẹẻẽìíịỉĩòóọỏõùúụủũơớờợởỡăắằặẳẵâấầậẩẫêếềệểễđĩọỏốồộổỗồờớợởẽẹẻếìíùúụũứưữựửữữýỳỵỷỹ ]+$/,
                                        message: "Tên chỉ được chứa chữ",
                                     },
                                  ]}
@@ -524,7 +525,7 @@ export default function SelectTour() {
                {/* Tiêu đề Tour */}
                <div className="flex items-center justify-between">
                   <h1 className="text-4xl font-extrabold text-gray-800 mb-6 border-b pb-3">
-                     {formattedTourName}{" "}
+                     <h2 className="format"> {formattedTourName} </h2>
                      <span className="text-xl text-gray-500">
                         ({formattedAreaName})
                      </span>

@@ -85,12 +85,12 @@ public class UserServiceImpl implements IUserService {
     public Users update(UserUpdateRequest userUpdateRequest, Long updateId) throws CustomException {
         Users users = findById(updateId);
 
-        Boolean userIsUsedBooking = userToBookingServiceCommunication.checkIfUserIsUsedBooking(updateId);
-// Kiểm tra user có ROLE_ADMIN or ROLE_OWNER
-        boolean hasAdminOrOwnerRole = users.getRoles().stream()
-                .anyMatch(role -> role.getRoleName() == RoleName.ROLE_ADMIN || role.getRoleName() == RoleName.ROLE_OWNER);
-        if(userIsUsedBooking && hasAdminOrOwnerRole)
-            throw new CustomException("Không thể cập nhật User (ID: " + updateId + ") vì người dùng đã đặt chuyến.");
+//        Boolean userIsUsedBooking = userToBookingServiceCommunication.checkIfUserIsUsedBooking(updateId);
+//// Kiểm tra user có ROLE_ADMIN or ROLE_OWNER
+//        boolean hasAdminOrOwnerRole = users.getRoles().stream()
+//                .anyMatch(role -> role.getRoleName() == RoleName.ROLE_ADMIN || role.getRoleName() == RoleName.ROLE_OWNER);
+//        if(userIsUsedBooking && hasAdminOrOwnerRole)
+//            throw new CustomException("Không thể cập nhật User (ID: " + updateId + ") vì người dùng đã đặt chuyến.");
 
         users.setFullName(userUpdateRequest.getFullName());
         users.setGender(userUpdateRequest.getGender());

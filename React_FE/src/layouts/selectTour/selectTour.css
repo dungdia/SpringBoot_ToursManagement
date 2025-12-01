@@ -1,5 +1,5 @@
 .format {
-   max-width: 300px; /* Đặt chiều rộng của phần tử */
+   max-width: 600px; /* Đặt chiều rộng của phần tử */
    white-space: nowrap; /* Ngăn không cho văn bản xuống dòng */
    overflow: hidden; /* Ẩn văn bản vượt quá chiều rộng */
    text-overflow: ellipsis; /* Hiển thị dấu ba chấm ở cuối */

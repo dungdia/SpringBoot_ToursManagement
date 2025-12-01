@@ -142,7 +142,7 @@ export default function RenderTour() {
                               className="tour-card p-5! bg-white shadow-xl rounded-xl overflow-hidden transition-shadow duration-300 hover:shadow-2xl"
                            >
                               {/* Phần hình ảnh */}
-                              <div className="wrap-img-tour overflow-hidden rounded-xl mb-4!">
+                              <div className=" wrap-img-tour overflow-hidden rounded-xl mb-4!">
                                  <img
                                     src={primaryImageUrl}
                                     alt={tour?.tourName}
@@ -155,7 +155,7 @@ export default function RenderTour() {
                                  {/* Tiêu đề tour */}
                                  <h3
                                     title={formattedTourName}
-                                    className="title font-bold text-xl text-gray-800 mb-3 line-clamp-2"
+                                    className="title format font-bold text-xl text-gray-800 mb-3 line-clamp-2"
                                  >
                                     {formattedTourName}
                                  </h3>

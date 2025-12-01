@@ -227,7 +227,7 @@ export default function Header() {
 
    // Sử dụng useDebounce để debounce giá trị password
    const debouncedPassword = useDebounce(currentPassword, 800);
-   
+
    // Hàm kiểm tra xem nhập password giống với password của email muốn đổi mk chưa
    useEffect(() => {
       const checkPassword = async () => {
@@ -470,7 +470,13 @@ export default function Header() {
             id="admin-header"
             className="w-full h-16 bg-slate-400 flex justify-between items-center px-12"
          >
-            <h2>Logo</h2>
+            <a href="#">
+               <img
+                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc0h9ID_CeREAALOnGQZdYCGpg9ClYqA1-iw&s"
+                  alt="Logo"
+                  className="logo w-[50%] m-0 p-0"
+               />
+            </a>
             <div className="flex items-center gap-5">
                <Bell className="cursor-pointer text-white" />
                <Dropdown

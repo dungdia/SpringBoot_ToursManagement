@@ -64,13 +64,13 @@ export default function Header() {
          <div className="flex items-center justify-between p-5">
             <a href="#">
                <img
-                  src="./src/assets/img/logo.png"
+                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRc0h9ID_CeREAALOnGQZdYCGpg9ClYqA1-iw&s"
                   alt="Logo"
-                  className="logo"
+                  className="logo w-[41%]  m-0 p-0"
                />
             </a>
             <div className="flex items-center justify-between gap-60">
-               <div className="flex items-center gap-6">
+               <div className="flex items-center gap-4">
                   {/* Tìm kiếm */}
                   <div>
                      <Input.Search
@@ -119,13 +119,18 @@ export default function Header() {
                   {/* Contact us */}
                   <div>
                      <p className="cursor-pointer">
-                        <a href="#footer">Liên hệ</a>
+                        <a href="#footerUser">Liên hệ</a>
                      </p>
                   </div>
                </div>
 
                <div className="flex items-center gap-3">
-                  <Button type="primary" danger ghost>
+                  <Button
+                     style={{ visibility: "hidden" }}
+                     type="primary"
+                     danger
+                     ghost
+                  >
                      Qua trang ADMIN
                   </Button>
 
